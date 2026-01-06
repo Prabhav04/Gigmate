@@ -74,6 +74,28 @@ const PlayerBoard = ({ role, masterNotes, songs, personalNotes, onUpdatePersonal
     );
 };
 
+const renderWithTags = (text) => {
+    if (!text) return <span className="opacity-30 italic">No notes added by leader.</span>;
+
+    // Split by the tag pattern |TAG NAME|
+    const parts = text.split(/(\|[^|]+\|)/g);
+
+    return parts.map((part, i) => {
+        if (part.startsWith('|') && part.endsWith('|')) {
+            const content = part.slice(1, -1); // Remove pipes
+            return (
+                <span
+                    key={i}
+                    className="mx-1 inline-block px-1.5 py-0.5 rounded-md bg-secondary text-black font-extrabold text-xs tracking-wider transform -translate-y-0.5 shadow-[0_0_10px_rgba(34,211,238,0.4)] border border-white/20 select-none animate-pulse-slow"
+                >
+                    {content.toUpperCase()}
+                </span>
+            );
+        }
+        return <span key={i}>{part}</span>;
+    });
+};
+
 // Extracted for cleaner state management per item
 const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -157,8 +179,8 @@ const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote }) =>
                         {/* Master Notes (Read Only) */}
                         <div className="space-y-1">
                             <h4 className="text-[10px] uppercase tracking-widest text-slate-600 font-bold">Master Notes</h4>
-                            <div className={`whitespace-pre-wrap ${isActive ? 'text-slate-200' : 'text-slate-400'}`}>
-                                {song.notes || <span className="opacity-30 italic">No notes added by leader.</span>}
+                            <div className={`whitespace-pre-wrap leading-relaxed ${isActive ? 'text-slate-200' : 'text-slate-400'}`}>
+                                {renderWithTags(song.notes)}
                             </div>
                         </div>
 
