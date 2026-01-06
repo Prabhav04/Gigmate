@@ -19,6 +19,7 @@ const SessionSpace = () => {
         addSong,
         updateSong,
         deleteSong,
+        reorderSongs,
         toggleSongActive,
         updatePersonalNotes,
         songPersonalNotes,
@@ -88,6 +89,7 @@ const SessionSpace = () => {
                         onAddSong={addSong}
                         onUpdateSong={updateSong}
                         onDeleteSong={deleteSong}
+                        onReorderSongs={reorderSongs}
                         onToggleActive={toggleSongActive}
                         isSaving={isSaving}
                     />

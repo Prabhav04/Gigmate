@@ -162,6 +162,16 @@ export const useSession = (sessionId, role) => {
       }
   };
 
+  const reorderSongs = async (newSongs) => {
+      setSongs(newSongs);
+      try {
+        await updateDoc(doc(db, 'sessions', sessionId), { songs: newSongs });
+      } catch (e) {
+        console.error("Reorder failed:", e);
+        setError("Reorder Failed");
+      }
+  };
+
   return {
     masterNotes,
     songs,
@@ -169,6 +179,7 @@ export const useSession = (sessionId, role) => {
     addSong,
     updateSong,
     deleteSong,
+    reorderSongs,
     toggleSongActive,
     updateMasterNotes,
     updatePersonalNotes,

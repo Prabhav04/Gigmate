@@ -106,8 +106,8 @@ const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote }) =>
     return (
         <div
             className={`rounded-xl border transition-all ${isActive
-                    ? 'bg-primary/10 border-primary shadow-[0_0_20px_rgba(167,139,250,0.15)] my-4 scale-[1.01]'
-                    : 'bg-surface/30 border-slate-800 hover:bg-surface/50 hover:border-slate-700'
+                ? 'bg-primary/10 border-primary shadow-[0_0_20px_rgba(167,139,250,0.15)] my-4 scale-[1.01]'
+                : 'bg-surface/30 border-slate-800 hover:bg-surface/50 hover:border-slate-700'
                 }`}
         >
             <div
@@ -132,7 +132,13 @@ const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote }) =>
                             </div>
                         )}
                         {song.tempo && (
-                            <div className="hidden sm:block rounded-lg border border-slate-700 bg-black/40 px-2 py-1 text-sm sm:text-base text-slate-400 font-mono">
+                            <div className="flex items-center gap-2 rounded-lg border border-slate-700 bg-black/40 px-2 py-1 text-sm sm:text-base text-slate-400 font-mono">
+                                {isActive && (
+                                    <div
+                                        className="w-2 h-2 rounded-full bg-secondary"
+                                        style={{ animation: `ping ${60 / parseInt(song.tempo)}s cubic-bezier(0, 0, 0.2, 1) infinite` }}
+                                    />
+                                )}
                                 {song.tempo}
                             </div>
                         )}
@@ -143,8 +149,8 @@ const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote }) =>
                         <div className="flex flex-wrap gap-1 mx-2">
                             {song.cues.map(cue => (
                                 <span key={cue} className={`px-1.5 py-0.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded border ${isActive
-                                        ? 'bg-secondary text-black border-secondary'
-                                        : 'bg-slate-800 text-secondary border-slate-700'
+                                    ? 'bg-secondary text-black border-secondary'
+                                    : 'bg-slate-800 text-secondary border-slate-700'
                                     }`}>
                                     {cue}
                                 </span>
