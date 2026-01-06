@@ -97,3 +97,15 @@ body {
   scrollbar-width: thin;
   scrollbar-color: rgba(167, 139, 250, 0.3) rgba(255, 255, 255, 0.05);
 }
+
+/* Pulse Glow Animation for Metronome */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0px rgba(34, 211, 238, 0);
+    border-color: rgba(34, 211, 238, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(34, 211, 238, 0.8);
+    border-color: rgba(34, 211, 238, 1);
+  }
+}
