@@ -160,3 +160,5 @@ const MasterBoard = ({ notes, onUpdate, songs, onAddSong, onUpdateSong, onDelete
         </div>
     );
 };
+
+export default MasterBoard;

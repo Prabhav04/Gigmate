@@ -77,12 +77,13 @@ const PlayerBoard = ({ role, masterNotes, songs, personalNotes, onUpdatePersonal
 const renderWithTags = (text) => {
     if (!text) return <span className="opacity-30 italic">No notes added by leader.</span>;
 
-    // Split by the tag pattern |TAG NAME|
-    const parts = text.split(/(\|[^|]+\|)/g);
+    // Split by the tag pattern |TAG NAME| OR chord pattern [Am]
+    const parts = text.split(/(\|[^|]+\||\[[^\]]+\])/g);
 
     return parts.map((part, i) => {
+        // Tag Logic: |DROP|
         if (part.startsWith('|') && part.endsWith('|')) {
-            const content = part.slice(1, -1); // Remove pipes
+            const content = part.slice(1, -1);
             return (
                 <span
                     key={i}
@@ -92,6 +93,20 @@ const renderWithTags = (text) => {
                 </span>
             );
         }
+
+        // Chord Logic: [Am]
+        if (part.startsWith('[') && part.endsWith(']')) {
+            const chord = part.slice(1, -1);
+            return (
+                <span
+                    key={i}
+                    className="inline-block text-secondary font-bold font-mono text-xl mx-1 transform -translate-y-1 drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]"
+                >
+                    {chord}
+                </span>
+            );
+        }
+
         return <span key={i}>{part}</span>;
     });
 };
