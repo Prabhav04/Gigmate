@@ -5,6 +5,7 @@ import { doc, onSnapshot, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 export const useSession = (sessionId, role) => {
   const [masterNotes, setMasterNotes] = useState("");
   const [personalNotes, setPersonalNotes] = useState("");
+  const [songPersonalNotes, setSongPersonalNotes] = useState({}); // Map of songId -> note
   const [songs, setSongs] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState(null);
@@ -64,7 +65,9 @@ export const useSession = (sessionId, role) => {
       const unsubPersonal = onSnapshot(doc(db, 'sessions', sessionId, 'roles', role), (doc) => {
           if (doc.exists()) {
               if (doc.metadata.hasPendingWrites) return;
-              setPersonalNotes(doc.data().notes || "");
+              const data = doc.data();
+              setPersonalNotes(data.notes || "");
+              setSongPersonalNotes(data.songNotes || {});
           }
       });
       
@@ -93,6 +96,7 @@ export const useSession = (sessionId, role) => {
         tempo: '', 
         timeSig: '', 
         notes: '', 
+        cues: [],
         isActive: false 
     };
     const newSongs = [...songs, newSong];
@@ -134,7 +138,6 @@ export const useSession = (sessionId, role) => {
   const updatePersonalNotes = async (text) => {
     setPersonalNotes(text);
     setIsSaving(true);
-    localStorage.setItem(`gigmate_${sessionId}_${role}_notes`, text);
     
     try {
         await setDoc(doc(db, 'sessions', sessionId, 'roles', role), { notes: text }, { merge: true });
@@ -143,6 +146,20 @@ export const useSession = (sessionId, role) => {
     } finally {
         setTimeout(() => setIsSaving(false), 500);
     }
+  };
+
+  const updateSongPersonalNote = async (songId, text) => {
+      const newSongNotes = { ...songPersonalNotes, [songId]: text };
+      setSongPersonalNotes(newSongNotes);
+      setIsSaving(true);
+
+      try {
+          await setDoc(doc(db, 'sessions', sessionId, 'roles', role), { songNotes: newSongNotes }, { merge: true });
+      } catch (error) {
+          console.error("Error syncing song notes:", error);
+      } finally {
+          setTimeout(() => setIsSaving(false), 500);
+      }
   };
 
   return {
@@ -155,6 +172,8 @@ export const useSession = (sessionId, role) => {
     toggleSongActive,
     updateMasterNotes,
     updatePersonalNotes,
+    songPersonalNotes,
+    updateSongPersonalNote,
     isConnected,
     error,
     isSaving

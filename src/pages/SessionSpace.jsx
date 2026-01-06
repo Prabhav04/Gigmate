@@ -21,6 +21,8 @@ const SessionSpace = () => {
         deleteSong,
         toggleSongActive,
         updatePersonalNotes,
+        songPersonalNotes,
+        updateSongPersonalNote,
         isConnected,
         error,
         isSaving
@@ -97,6 +99,8 @@ const SessionSpace = () => {
                         personalNotes={personalNotes}
                         onUpdatePersonal={updatePersonalNotes}
                         isSaving={isSaving}
+                        songPersonalNotes={songPersonalNotes}
+                        onUpdateSongPersonal={updateSongPersonalNote}
                     />
                 )}
             </main>

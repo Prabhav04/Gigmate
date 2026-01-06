@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Music, Minimize2, Maximize2 } from 'lucide-react';
 
-const PlayerBoard = ({ role, masterNotes, songs, personalNotes, onUpdatePersonal, isSaving }) => {
+const PlayerBoard = ({ role, masterNotes, songs, personalNotes, onUpdatePersonal, isSaving, songPersonalNotes, onUpdateSongPersonal }) => {
     const [showGeneral, setShowGeneral] = useState(false);
     const [notesCollapsed, setNotesCollapsed] = useState(false);
 
@@ -35,6 +35,8 @@ const PlayerBoard = ({ role, masterNotes, songs, personalNotes, onUpdatePersonal
                                 song={song}
                                 index={index}
                                 isActive={isActive}
+                                myNote={songPersonalNotes?.[song.id] || ''}
+                                onUpdateMyNote={(text) => onUpdateSongPersonal && onUpdateSongPersonal(song.id, text)}
                             />
                         );
                     })}
@@ -46,7 +48,7 @@ const PlayerBoard = ({ role, masterNotes, songs, personalNotes, onUpdatePersonal
             <div className={`bg-surface border border-glass-border rounded-xl flex flex-col transition-all duration-300 ${notesCollapsed ? 'h-[50px]' : 'h-[25%] sm:h-[30%] min-h-[150px]'}`}>
                 <div className="flex justify-between items-center p-3 border-b border-slate-800/50">
                     <div className="flex items-center gap-2">
-                        <h2 className="text-xs font-bold text-secondary uppercase tracking-widest">{role} Notes</h2>
+                        <h2 className="text-xs font-bold text-secondary uppercase tracking-widest">{role} Scratchpad</h2>
                         <div className={`text-[10px] text-slate-500 font-mono transition-opacity ${isSaving ? 'opacity-100' : 'opacity-0'}`}>
                             SAVING...
                         </div>
@@ -63,7 +65,7 @@ const PlayerBoard = ({ role, masterNotes, songs, personalNotes, onUpdatePersonal
                     <textarea
                         value={personalNotes}
                         onChange={(e) => onUpdatePersonal(e.target.value)}
-                        placeholder={`Your personal ${role} notes...`}
+                        placeholder={`Start typing to add global notes visible only to you...`}
                         className="flex-1 w-full bg-black border-none p-4 text-lg text-white focus:outline-none focus:ring-1 focus:ring-secondary/50 transition-colors resize-none font-sans font-medium leading-relaxed tracking-wide placeholder:text-slate-800"
                     />
                 )}
@@ -73,7 +75,7 @@ const PlayerBoard = ({ role, masterNotes, songs, personalNotes, onUpdatePersonal
 };
 
 // Extracted for cleaner state management per item
-const AccordionSongItem = ({ song, index, isActive }) => {
+const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     // Auto-expand if active (Leader control), otherwise rely on user click
@@ -81,13 +83,15 @@ const AccordionSongItem = ({ song, index, isActive }) => {
 
     return (
         <div
-            onClick={() => setIsExpanded(!isExpanded)}
-            className={`rounded-xl border transition-all cursor-pointer ${isActive
-                ? 'bg-primary/10 border-primary shadow-[0_0_20px_rgba(167,139,250,0.15)] my-4 scale-[1.01]'
-                : 'bg-surface/30 border-slate-800 hover:bg-surface/50 hover:border-slate-700'
+            className={`rounded-xl border transition-all ${isActive
+                    ? 'bg-primary/10 border-primary shadow-[0_0_20px_rgba(167,139,250,0.15)] my-4 scale-[1.01]'
+                    : 'bg-surface/30 border-slate-800 hover:bg-surface/50 hover:border-slate-700'
                 }`}
         >
-            <div className="p-4 flex justify-between items-center group">
+            <div
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="p-4 flex justify-between items-center group cursor-pointer"
+            >
                 <div className="flex items-center gap-4 overflow-hidden">
                     <span className={`font-mono text-xl font-bold shrink-0 ${isActive ? 'text-primary' : 'text-slate-600'}`}>
                         #{index + 1}
@@ -112,6 +116,20 @@ const AccordionSongItem = ({ song, index, isActive }) => {
                         )}
                     </div>
 
+                    {/* Performance Cues Display */}
+                    {song.cues && song.cues.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mx-2">
+                            {song.cues.map(cue => (
+                                <span key={cue} className={`px-1.5 py-0.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded border ${isActive
+                                        ? 'bg-secondary text-black border-secondary'
+                                        : 'bg-slate-800 text-secondary border-slate-700'
+                                    }`}>
+                                    {cue}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+
                     {isActive && (
                         <div className="flex items-center gap-2">
                             <div className="hidden sm:flex text-xs bg-red-500 text-white px-2 py-0.5 rounded font-bold animate-pulse shadow-lg shadow-red-500/20">
@@ -127,12 +145,34 @@ const AccordionSongItem = ({ song, index, isActive }) => {
 
             {/* Expandable Content */}
             {showDetails && (
-                <div className={`px-4 pb-4 pt-2 font-mono text-base sm:text-lg whitespace-pre-wrap border-t ${isActive ? 'border-primary/10 text-slate-200' : 'border-slate-800/50 text-slate-400'}`}>
-                    <div className="flex gap-4 mb-2 opacity-50 text-sm">
+                <div className={`px-4 pb-4 pt-2 font-mono text-base sm:text-lg border-t ${isActive ? 'border-primary/10' : 'border-slate-800/50'}`}>
+
+                    <div className="flex gap-4 mb-2 opacity-50 text-sm text-slate-400">
                         {song.tempo && <span className="sm:hidden">BPM: {song.tempo}</span>}
                         {song.timeSig && <span>{song.timeSig}</span>}
                     </div>
-                    <div>{song.notes || <span className="opacity-30 italic">No notes added.</span>}</div>
+
+                    {/* Grid Layout for Master Notes + My Personal Notes */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                        {/* Master Notes (Read Only) */}
+                        <div className="space-y-1">
+                            <h4 className="text-[10px] uppercase tracking-widest text-slate-600 font-bold">Master Notes</h4>
+                            <div className={`whitespace-pre-wrap ${isActive ? 'text-slate-200' : 'text-slate-400'}`}>
+                                {song.notes || <span className="opacity-30 italic">No notes added by leader.</span>}
+                            </div>
+                        </div>
+
+                        {/* My Personal Song Note */}
+                        <div className="space-y-1">
+                            <h4 className="text-[10px] uppercase tracking-widest text-secondary font-bold">My Notes</h4>
+                            <textarea
+                                value={myNote}
+                                onChange={(e) => onUpdateMyNote(e.target.value)}
+                                placeholder="Add private notes for this song..."
+                                className="w-full bg-black/50 border border-slate-800 rounded p-2 text-secondary/90 focus:border-secondary focus:outline-none text-base resize-none h-[80px]"
+                            />
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

@@ -77,6 +77,28 @@ const MasterBoard = ({ notes, onUpdate, songs, onAddSong, onUpdateSong, onDelete
                                             />
                                         </div>
 
+                                        {/* Performance Cues Selection */}
+                                        <div className="flex flex-wrap gap-2 py-1">
+                                            {['Acoustic Switch', 'Drop', 'Solo', 'Jam', 'Speech'].map(cue => (
+                                                <button
+                                                    key={cue}
+                                                    onClick={() => {
+                                                        const currentCues = song.cues || [];
+                                                        const newCues = currentCues.includes(cue)
+                                                            ? currentCues.filter(c => c !== cue)
+                                                            : [...currentCues, cue];
+                                                        onUpdateSong(song.id, 'cues', newCues);
+                                                    }}
+                                                    className={`px-2 py-1 rounded text-xs font-bold border transition-all ${(song.cues || []).includes(cue)
+                                                            ? 'bg-secondary text-black border-secondary'
+                                                            : 'bg-transparent text-slate-500 border-slate-700 hover:border-slate-500'
+                                                        }`}
+                                                >
+                                                    {cue}
+                                                </button>
+                                            ))}
+                                        </div>
+
                                         <textarea
                                             value={song.notes}
                                             onChange={(e) => onUpdateSong(song.id, 'notes', e.target.value)}
