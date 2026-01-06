@@ -32,7 +32,7 @@ const MasterBoard = ({ notes, onUpdate, songs, onAddSong, onUpdateSong, onDelete
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+                <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
                     {songs && songs.length > 0 ? (
                         songs.map((song, index) => (
                             <div
@@ -40,7 +40,7 @@ const MasterBoard = ({ notes, onUpdate, songs, onAddSong, onUpdateSong, onDelete
                                 className={`p-4 rounded-lg border transition-all ${song.isActive ? 'bg-primary/10 border-primary shadow-[0_0_15px_rgba(167,139,250,0.1)]' : 'bg-black border-slate-800'}`}
                             >
                                 <div className="flex items-start gap-4">
-                                    <div className="pt-2 text-slate-500 font-mono text-sm">#{index + 1}</div>
+                                    <div className="pt-2 text-slate-500 font-mono text-lg font-bold">#{index + 1}</div>
 
                                     <div className="flex-1 space-y-3">
                                         <div className="flex gap-2">
@@ -49,7 +49,7 @@ const MasterBoard = ({ notes, onUpdate, songs, onAddSong, onUpdateSong, onDelete
                                                 value={song.title}
                                                 onChange={(e) => onUpdateSong(song.id, 'title', e.target.value)}
                                                 placeholder="Song Title"
-                                                className="flex-1 bg-transparent border-b border-slate-700 focus:border-primary focus:outline-none text-xl font-bold text-white pb-1"
+                                                className="flex-1 bg-transparent border-b border-slate-700 focus:border-primary focus:outline-none text-2xl font-bold text-white pb-1 placeholder:text-slate-700"
                                             />
                                         </div>
 
@@ -58,22 +58,22 @@ const MasterBoard = ({ notes, onUpdate, songs, onAddSong, onUpdateSong, onDelete
                                                 type="text"
                                                 value={song.key || ''}
                                                 onChange={(e) => onUpdateSong(song.id, 'key', e.target.value)}
-                                                placeholder="Key (e.g. Am)"
-                                                className="w-24 bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-slate-300 focus:border-primary focus:outline-none"
+                                                placeholder="Key"
+                                                className="w-20 bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-slate-300 focus:border-primary focus:outline-none"
                                             />
                                             <input
                                                 type="text"
                                                 value={song.tempo || ''}
                                                 onChange={(e) => onUpdateSong(song.id, 'tempo', e.target.value)}
-                                                placeholder="BPM (e.g. 120)"
-                                                className="w-24 bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-slate-300 focus:border-primary focus:outline-none"
+                                                placeholder="BPM"
+                                                className="w-20 bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-slate-300 focus:border-primary focus:outline-none"
                                             />
                                             <input
                                                 type="text"
                                                 value={song.timeSig || ''}
                                                 onChange={(e) => onUpdateSong(song.id, 'timeSig', e.target.value)}
-                                                placeholder="Sig (e.g. 4/4)"
-                                                className="w-24 bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-slate-300 focus:border-primary focus:outline-none"
+                                                placeholder="Sig"
+                                                className="w-20 bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-slate-300 focus:border-primary focus:outline-none"
                                             />
                                         </div>
 
@@ -81,24 +81,24 @@ const MasterBoard = ({ notes, onUpdate, songs, onAddSong, onUpdateSong, onDelete
                                             value={song.notes}
                                             onChange={(e) => onUpdateSong(song.id, 'notes', e.target.value)}
                                             placeholder="Specific performance notes, chords, lyrics..."
-                                            className="w-full bg-slate-900/50 rounded p-2 text-slate-300 min-h-[60px] focus:outline-none focus:ring-1 focus:ring-primary text-lg resize-y"
+                                            className="w-full bg-slate-900/50 rounded p-2 text-slate-300 min-h-[80px] focus:outline-none focus:ring-1 focus:ring-primary text-lg resize-y custom-scrollbar"
                                         />
                                     </div>
 
-                                    <div className="flex flex-col gap-2">
+                                    <div className="flex flex-col gap-2 pt-1">
                                         <button
                                             onClick={() => onToggleActive(song.id)}
                                             title={song.isActive ? "Current Song" : "Set as Current"}
-                                            className={`p-2 rounded-full transition-colors ${song.isActive ? 'bg-primary text-black' : 'text-slate-500 hover:text-primary bg-slate-900 border border-slate-700'}`}
+                                            className={`p-3 rounded-full transition-colors ${song.isActive ? 'bg-primary text-black shadow-[0_0_10px_rgba(167,139,250,0.4)]' : 'text-slate-500 hover:text-primary bg-slate-900 border border-slate-700'}`}
                                         >
-                                            {song.isActive ? <Play size={20} fill="currentColor" /> : <Circle size={20} />}
+                                            {song.isActive ? <Play size={24} fill="currentColor" /> : <Circle size={24} />}
                                         </button>
                                         <button
                                             onClick={() => onDeleteSong(song.id)}
-                                            className="p-2 text-slate-600 hover:text-red-500 transition-colors"
+                                            className="p-3 text-slate-600 hover:text-red-500 transition-colors"
                                             title="Delete Song"
                                         >
-                                            <Trash2 size={20} />
+                                            <Trash2 size={24} />
                                         </button>
                                     </div>
                                 </div>
