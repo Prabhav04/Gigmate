@@ -28,7 +28,7 @@ const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteS
                             value={song.title}
                             onChange={(e) => onUpdateSong(song.id, 'title', e.target.value)}
                             placeholder="Song Title"
-                            className="flex-1 bg-transparent border-b border-slate-700 focus:border-primary focus:outline-none text-2xl font-bold text-white pb-1 placeholder:text-slate-700 w-full min-w-0" // w-full for mobile
+                            className="flex-1 bg-transparent border-b border-slate-700 focus:border-primary focus:outline-none text-2xl font-bold text-white pb-1 placeholder:text-slate-700 w-full min-w-0"
                         />
                     </div>
 
