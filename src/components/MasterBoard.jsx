@@ -1,4 +1,5 @@
 import { Reorder, useDragControls } from 'framer-motion';
+import { GripVertical, Play, Circle, Plus, Trash2 } from 'lucide-react';
 
 // Separate component for sortable item to use drag controls hook
 const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteSong }) => {
