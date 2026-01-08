@@ -16,10 +16,32 @@ const LandingPage = () => {
     useEffect(() => {
         const loadSessions = () => {
             try {
-                const sessions = JSON.parse(localStorage.getItem('gigmate_sessions') || '[]');
-                setSavedSessions(sessions);
+                const raw = JSON.parse(localStorage.getItem('gigmate_sessions') || '[]');
+                // Normalize data: Handle legacy string array ['id1', 'id2'] by converting to objects
+                const sessions = raw.map(item => {
+                    if (typeof item === 'string') {
+                        return { id: item, name: 'Untitled Session', date: new Date().toISOString() };
+                    }
+                    // Ensure it has required fields
+                    return {
+                        id: item.id || 'unknown',
+                        name: item.name || 'Untitled',
+                        date: item.date || new Date().toISOString()
+                    };
+                });
+
+                // Filter out any completely invalid items
+                const validSessions = sessions.filter(s => s && s.id);
+
+                setSavedSessions(validSessions);
+                // Fix storage immediately
+                if (JSON.stringify(raw) !== JSON.stringify(validSessions)) {
+                    localStorage.setItem('gigmate_sessions', JSON.stringify(validSessions));
+                }
             } catch (e) {
                 console.error("Failed to load sessions", e);
+                // Reset if corrupt
+                localStorage.setItem('gigmate_sessions', '[]');
             }
         };
         loadSessions();

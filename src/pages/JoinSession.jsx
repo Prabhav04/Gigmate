@@ -11,14 +11,22 @@ const JoinSession = () => {
         const stored = localStorage.getItem('gigmate_sessions');
         if (stored) {
             try {
-                setRecentSessions(JSON.parse(stored));
+                const raw = JSON.parse(stored);
+                // Normalize: Ensure we have objects
+                const sessions = raw.map(item => {
+                    if (typeof item === 'string') return { id: item, name: 'Joined Session', date: new Date().toISOString() };
+                    return item;
+                });
+                setRecentSessions(sessions);
             } catch (e) { console.error("Error parsing recent sessions", e); }
         }
     }, []);
 
     const saveToRecent = (id) => {
-        const currentRecents = recentSessions.filter(s => s !== id); // Remove duplicate if exists
-        const newRecents = [id, ...currentRecents].slice(0, 5); // Keep max 5
+        const newSession = { id, name: 'Joined Session', date: new Date().toISOString() };
+        // Remove existing by ID to avoid duplicates
+        const currentRecents = recentSessions.filter(s => s.id !== id);
+        const newRecents = [newSession, ...currentRecents].slice(0, 5);
         setRecentSessions(newRecents);
         localStorage.setItem('gigmate_sessions', JSON.stringify(newRecents));
     };
@@ -31,9 +39,10 @@ const JoinSession = () => {
         }
     };
 
-    const joinRecent = (id) => {
-        saveToRecent(id);
-        navigate(`/session/${id}`);
+    const joinRecent = (session) => {
+        // Update timestamp/position on rejoin
+        saveToRecent(session.id);
+        navigate(`/session/${session.id}`);
     };
 
     return (
@@ -71,11 +80,14 @@ const JoinSession = () => {
                         <div className="space-y-2">
                             {recentSessions.map(session => (
                                 <button
-                                    key={session}
+                                    key={session.id}
                                     onClick={() => joinRecent(session)}
-                                    className="w-full flex items-center justify-between p-3 rounded-lg bg-slate-900/30 hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-700 group"
+                                    className="w-full flex items-center justify-between p-3 rounded-lg bg-slate-900/30 hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-700 group text-left"
                                 >
-                                    <span className="font-mono text-slate-300 group-hover:text-primary transition-colors">{session}</span>
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-slate-300 group-hover:text-primary transition-colors text-sm">{session.name}</span>
+                                        <span className="font-mono text-xs text-slate-500">{session.id}</span>
+                                    </div>
                                     <ArrowRight size={16} className="text-slate-600 group-hover:text-primary transition-colors" />
                                 </button>
                             ))}
