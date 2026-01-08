@@ -4,13 +4,36 @@ import { ArrowRight, Hash } from 'lucide-react';
 
 const JoinSession = () => {
     const [sessionId, setSessionId] = useState('');
+    const [recentSessions, setRecentSessions] = useState([]);
     const navigate = useNavigate();
+
+    React.useEffect(() => {
+        const stored = localStorage.getItem('gigmate_sessions');
+        if (stored) {
+            try {
+                setRecentSessions(JSON.parse(stored));
+            } catch (e) { console.error("Error parsing recent sessions", e); }
+        }
+    }, []);
+
+    const saveToRecent = (id) => {
+        const currentRecents = recentSessions.filter(s => s !== id); // Remove duplicate if exists
+        const newRecents = [id, ...currentRecents].slice(0, 5); // Keep max 5
+        setRecentSessions(newRecents);
+        localStorage.setItem('gigmate_sessions', JSON.stringify(newRecents));
+    };
 
     const handleJoin = (e) => {
         e.preventDefault();
         if (sessionId.trim()) {
-            navigate(`/session/${sessionId}`);
+            saveToRecent(sessionId.trim());
+            navigate(`/session/${sessionId.trim()}`);
         }
+    };
+
+    const joinRecent = (id) => {
+        saveToRecent(id);
+        navigate(`/session/${id}`);
     };
 
     return (
@@ -41,6 +64,24 @@ const JoinSession = () => {
                         Enter Studio <ArrowRight className="ml-2" size={20} />
                     </button>
                 </form>
+
+                {recentSessions.length > 0 && (
+                    <div className="mt-8 pt-6 border-t border-slate-700/50">
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">Recent Sessions</h3>
+                        <div className="space-y-2">
+                            {recentSessions.map(session => (
+                                <button
+                                    key={session}
+                                    onClick={() => joinRecent(session)}
+                                    className="w-full flex items-center justify-between p-3 rounded-lg bg-slate-900/30 hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-700 group"
+                                >
+                                    <span className="font-mono text-slate-300 group-hover:text-primary transition-colors">{session}</span>
+                                    <ArrowRight size={16} className="text-slate-600 group-hover:text-primary transition-colors" />
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

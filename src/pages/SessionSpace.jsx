@@ -26,7 +26,8 @@ const SessionSpace = () => {
         updateSongPersonalNote,
         isConnected,
         error,
-        isSaving
+        isSaving,
+        importSongs
     } = useSession(sessionId, role);
 
     const copyInvite = () => {
@@ -48,34 +49,38 @@ const SessionSpace = () => {
             )}
 
             {/* Navbar */}
-            <header className="px-6 py-3 border-b border-glass-border flex justify-between items-center bg-surface/30 backdrop-blur-md sticky top-0 z-50">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => setRole(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white" title="Change Role">
-                        <ArrowLeft size={20} />
+            <header className="px-3 py-2 md:px-6 md:py-3 border-b border-glass-border flex justify-between items-center bg-surface/30 backdrop-blur-md sticky top-0 z-50">
+                <div className="flex items-center gap-2 flex-1 min-w-0 mr-2">
+                    <button onClick={() => setRole(null)} className="shrink-0 p-1.5 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white" title="Back">
+                        <ArrowLeft size={18} />
                     </button>
-                    <div className="font-display font-bold text-xl flex items-center gap-2">
+
+                    <div className="hidden md:flex items-center gap-2 font-display font-bold text-xl">
                         <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">GIGmate</span>
                         <span className="text-slate-600">/</span>
-                        <span className="text-slate-400 font-mono text-sm tracking-wider">{sessionId}</span>
                     </div>
+
+                    <span className="text-slate-200 font-mono text-sm truncate min-w-0 flex-1 md:flex-none" title={sessionId}>
+                        {sessionId}
+                    </span>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className={`flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border ${isConnected ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                <div className="flex items-center gap-2 shrink-0">
+                    <div className={`flex items-center justify-center w-6 h-6 md:w-auto md:h-auto md:gap-2 md:px-3 md:py-1.5 rounded-full md:border ${isConnected ? 'md:bg-green-500/10 md:text-green-400 md:border-green-500/20' : 'md:bg-red-500/10 md:text-red-400 md:border-red-500/20'}`} title={isConnected ? 'Live' : 'Offline'}>
                         <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
-                        {isConnected ? 'LIVE' : 'OFFLINE'}
+                        <span className="hidden md:inline text-xs font-medium">{isConnected ? 'LIVE' : 'OFFLINE'}</span>
                     </div>
 
-                    <div className="text-sm font-bold px-4 py-1.5 rounded-lg bg-surface border border-glass-border shadow-sm text-white">
+                    <div className="text-[10px] md:text-sm font-bold px-2 py-1 md:px-4 md:py-1.5 rounded-lg bg-surface border border-glass-border shadow-sm text-white max-w-[100px] truncate">
                         {role.toUpperCase()}
                     </div>
 
                     <button
                         onClick={copyInvite}
-                        className="p-2 bg-primary hover:bg-primary-hover rounded-lg text-white transition-all hover:scale-105 shadow-lg shadow-primary/25"
+                        className="p-1.5 md:p-2 bg-primary hover:bg-primary-hover rounded-lg text-white transition-all hover:scale-105 shadow-lg shadow-primary/25"
                         title="Copy Invite Link"
                     >
-                        <Share2 size={20} />
+                        <Share2 size={16} className="md:w-5 md:h-5" />
                     </button>
                 </div>
             </header>
@@ -92,6 +97,7 @@ const SessionSpace = () => {
                         onReorderSongs={reorderSongs}
                         onToggleActive={toggleSongActive}
                         isSaving={isSaving}
+                        onImportSongs={importSongs}
                     />
                 ) : (
                     <PlayerBoard

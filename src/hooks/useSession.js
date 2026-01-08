@@ -172,6 +172,21 @@ export const useSession = (sessionId, role) => {
       }
   };
 
+  const importSongs = async (newSongsToImport) => {
+      // Append or Replace? Let's Append for safety, or we could offer a choice.
+      // For this specific "Preset" use case, the user likely wants to populate an empty session or add to it.
+      // Let's go with Append, but filter out duplicates by ID if any (though IDs should be unique).
+      
+      const updatedSongs = [...songs, ...newSongsToImport];
+      setSongs(updatedSongs);
+      try {
+          await updateDoc(doc(db, 'sessions', sessionId), { songs: updatedSongs });
+      } catch (e) {
+          console.error("Import failed:", e);
+          setError("Import Failed");
+      }
+  };
+
   return {
     masterNotes,
     songs,
@@ -185,6 +200,7 @@ export const useSession = (sessionId, role) => {
     updatePersonalNotes,
     songPersonalNotes,
     updateSongPersonalNote,
+    importSongs,
     isConnected,
     error,
     isSaving
