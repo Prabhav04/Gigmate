@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import RoleSelection from '../components/RoleSelection';
 import MasterBoard from '../components/MasterBoard';
 import PlayerBoard from '../components/PlayerBoard';
@@ -8,7 +8,7 @@ import { Share2, ArrowLeft } from 'lucide-react';
 
 const SessionSpace = () => {
     const { sessionId } = useParams();
-    const navigate = useNavigate();
+
     const [role, setRole] = useState(null);
 
     const {

@@ -2,6 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Music, Users, ArrowRight, Save, Clock, Trash2, Plus, Copy, Check } from 'lucide-react';
 
+const generateSessionId = (customName) => {
+    return customName
+        ? customName.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 6)
+        : Math.random().toString(36).substring(2, 9);
+};
+
 const LandingPage = () => {
     const navigate = useNavigate();
     const [savedSessions, setSavedSessions] = useState([]);
@@ -21,8 +27,8 @@ const LandingPage = () => {
 
     const createSession = (customName) => {
         const baseId = customName
-            ? customName.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 6)
-            : Math.random().toString(36).substring(2, 9);
+            ? generateSessionId(customName)
+            : generateSessionId();
 
         saveSessionToHistory(baseId, customName || 'Untitled Jam');
         navigate(`/session/${baseId}`);
