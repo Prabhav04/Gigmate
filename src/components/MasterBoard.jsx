@@ -202,6 +202,17 @@ const MasterBoard = ({ notes, onUpdate, songs, onAddSong, onUpdateSong, onDelete
                             >
                                 Load "Rock Setlist" Preset
                             </button>
+                            <button
+                                onClick={() => {
+                                    import('../constants/presets').then(({ ATTAM_SETLIST_PRESET }) => {
+                                        loadPreset(ATTAM_SETLIST_PRESET);
+                                        setShowImport(false);
+                                    });
+                                }}
+                                className="px-4 py-2 bg-gradient-to-r from-green-600 to-teal-600 rounded-lg text-white font-bold text-sm whitespace-nowrap hover:scale-105 transition-transform"
+                            >
+                                Load "Attam Setlist" Preset
+                            </button>
                             {/* Add more presets here if needed */}
                         </div>
 

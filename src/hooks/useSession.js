@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { doc, onSnapshot, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 
+import { STUDIOS } from '../constants/studios';
+
 export const useSession = (sessionId, role) => {
   const [masterNotes, setMasterNotes] = useState("");
   const [personalNotes, setPersonalNotes] = useState("");
@@ -22,9 +24,23 @@ export const useSession = (sessionId, role) => {
             const docSnap = await getDoc(docRef);
             
             if (!docSnap.exists()) {
+                // Check if this is a known studio with a default preset
+                const knownStudio = STUDIOS.find(s => s.id === sessionId);
+                const initialSongs = knownStudio ? knownStudio.defaultPreset : [];
+                
+                // Copy preset to ensure new IDs if needed, although presets usually have placeholder IDs.
+                // For a fresh session, we can keep preset IDs or regenerate them. 
+                // Let's regenerate to be safe against future conflicts if multiple imports happen, 
+                // but for init it doesn't matter much. Let's keep it simple.
+                // Actually, let's regenerate for consistency with import logic.
+                const hydratedSongs = initialSongs.map(s => ({
+                    ...s, 
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
+                }));
+
                 await setDoc(docRef, {
-                    masterNotes: "Welcome! Use the General Info for announcements.",
-                    songs: [],
+                    masterNotes: knownStudio ? `Welcome to ${knownStudio.name}! session.` : "Welcome! Use the General Info for announcements.",
+                    songs: hydratedSongs,
                     createdAt: new Date()
                 });
             }

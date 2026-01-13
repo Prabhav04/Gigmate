@@ -8,6 +8,10 @@ const generateSessionId = (customName) => {
         : Math.random().toString(36).substring(2, 9);
 };
 
+import { STUDIOS } from '../constants/studios';
+
+// ... (keep generateSessionId helper if you want, but it's less used now)
+
 const LandingPage = () => {
     const navigate = useNavigate();
     const [savedSessions, setSavedSessions] = useState([]);
@@ -20,7 +24,7 @@ const LandingPage = () => {
                 // Normalize data: Handle legacy string array ['id1', 'id2'] by converting to objects
                 const sessions = raw.map(item => {
                     if (typeof item === 'string') {
-                        return { id: item, name: 'Untitled Session', date: new Date().toISOString() };
+                        return { id: item, name: 'Joined Session', date: new Date().toISOString() };
                     }
                     // Ensure it has required fields
                     return {
@@ -46,6 +50,11 @@ const LandingPage = () => {
         };
         loadSessions();
     }, []);
+
+    const enterStudio = (studio) => {
+        saveSessionToHistory(studio.id, studio.name);
+        navigate(`/session/${studio.id}`);
+    };
 
     const createSession = (customName) => {
         const baseId = customName
@@ -80,13 +89,6 @@ const LandingPage = () => {
         setTimeout(() => setCopiedId(null), 2000);
     };
 
-    const GIG_TYPES = [
-        { name: 'Marriage Concert', color: 'from-pink-500 to-rose-500', icon: '💍' },
-        { name: 'Corporate GIG', color: 'from-blue-500 to-cyan-500', icon: '👔' },
-        { name: 'College Show (Rock)', color: 'from-purple-500 to-indigo-500', icon: '🎸' },
-        { name: 'ADICHPWOLI SET', color: 'from-orange-500 to-red-500', icon: '🔥' },
-    ];
-
     return (
         <div className="min-h-[90vh] flex flex-col items-center justify-start pt-10 md:pt-20 space-y-12 pb-10">
             <div className="space-y-4 animate-fade-in-up text-center">
@@ -98,21 +100,24 @@ const LandingPage = () => {
                 </p>
             </div>
 
-            {/* Quick Start Templates */}
+            {/* Persistent Studios */}
             <div className="w-full max-w-5xl px-4 animate-fade-in text-left">
-                <h3 className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-4">Start New Gig</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {GIG_TYPES.map((gig) => (
+                <h3 className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-4">Enter Studio</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {STUDIOS.map((studio) => (
                         <button
-                            key={gig.name}
-                            onClick={() => createSession(gig.name)}
-                            className={`group relative overflow-hidden rounded-xl p-6 border border-slate-800 hover:border-slate-600 transition-all hover:scale-[1.02] text-left`}
+                            key={studio.id}
+                            onClick={() => enterStudio(studio)}
+                            className={`group relative overflow-hidden rounded-xl p-8 border border-slate-800 hover:border-slate-600 transition-all hover:scale-[1.02] text-left shadow-2xl`}
                         >
-                            <div className={`absolute inset-0 bg-gradient-to-br ${gig.color} opacity-10 group-hover:opacity-20 transition-opacity`} />
-                            <div className="relative z-10">
-                                <div className="text-2xl mb-2">{gig.icon}</div>
-                                <div className="font-bold text-lg leading-tight text-white">{gig.name}</div>
-                                <div className="text-xs text-slate-500 mt-2 font-mono group-hover:text-slate-300">Create New &rarr;</div>
+                            <div className={`absolute inset-0 bg-gradient-to-br ${studio.color} opacity-10 group-hover:opacity-20 transition-opacity`} />
+                            <div className="relative z-10 flex flex-col h-full">
+                                <div className="text-4xl mb-4 bg-surface/50 w-16 h-16 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/10">{studio.icon}</div>
+                                <div className="font-bold text-2xl leading-tight text-white mb-2">{studio.name}</div>
+                                <div className="text-sm text-slate-400">{studio.description}</div>
+                                <div className="mt-auto pt-6 flex items-center text-primary font-bold text-sm tracking-wide uppercase group-hover:translate-x-2 transition-transform">
+                                    Open Studio <ArrowRight size={16} className="ml-2" />
+                                </div>
                             </div>
                         </button>
                     ))}
