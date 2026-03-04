@@ -16,7 +16,7 @@ const PlayerBoard = ({ role, masterNotes, songs, personalNotes, onUpdatePersonal
                 {/* Top Section: Setlist View - Takes remaining space */}
                 <div className={`bg-surface border border-glass-border rounded-xl flex flex-col overflow-hidden relative transition-all duration-300 ${notesCollapsed ? 'flex-1' : 'h-[75%] sm:h-[70%]'}`}>
                     <div className="p-3 border-b border-slate-800 bg-surface flex justify-between items-center z-10">
-                        <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                        {/* <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                             <Music size={16} /> Setlist
                         </h2>
                         <div className="flex items-center gap-2">
@@ -31,7 +31,7 @@ const PlayerBoard = ({ role, masterNotes, songs, personalNotes, onUpdatePersonal
                             <button onClick={() => setShowGeneral(!showGeneral)} className="text-xs text-primary hover:underline">
                                 {showGeneral ? "Hide Info" : "Show General Info"}
                             </button>
-                        </div>
+                        </div> */}
                     </div>
 
                     {/* General Info Overlay/Panel */}
