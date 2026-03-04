@@ -98,7 +98,6 @@ body {
   scrollbar-color: rgba(167, 139, 250, 0.3) rgba(255, 255, 255, 0.05);
 }
 
-/* Pulse Glow Animation for Metronome */
 @keyframes pulse-glow {
   0%, 100% {
     box-shadow: 0 0 0px rgba(34, 211, 238, 0);
@@ -109,3 +108,90 @@ body {
     border-color: rgba(34, 211, 238, 1);
   }
 }
+
+/* ============================================
+   STAGE MODE - OLED Ultra-Dark
+   Applied via [data-stage-mode="true"] on <html>
+   ============================================ */
+
+[data-stage-mode="true"] {
+  --color-background: #000000;
+  --color-surface: #000000;
+  --color-primary: #888888;
+  --color-secondary: #666666;
+  --color-accent: #555555;
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-bg: #000000;
+}
+
+/* Kill all glows and shadows in stage mode */
+[data-stage-mode="true"] * {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Kill all glow animations in stage mode */
+[data-stage-mode="true"] .animate-pulse,
+[data-stage-mode="true"] .animate-pulse-slow {
+  animation: none !important;
+}
+
+/* Kill all gradient text - just use dim white */
+[data-stage-mode="true"] .bg-gradient-to-r.bg-clip-text {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  color: #cccccc !important;
+}
+
+/* Stage mode body and surface colors */
+[data-stage-mode="true"] body,
+[data-stage-mode="true"] #root {
+  background: #000000;
+}
+
+/* Dim all borders */
+[data-stage-mode="true"] .border,
+[data-stage-mode="true"] [class*="border-"] {
+  border-color: rgba(255,255,255,0.07) !important;
+}
+
+/* Dim text */
+[data-stage-mode="true"] .text-primary { color: #888888 !important; }
+[data-stage-mode="true"] .text-secondary { color: #666666 !important; }
+[data-stage-mode="true"] .text-white { color: #cccccc !important; }
+[data-stage-mode="true"] .text-slate-300 { color: #999999 !important; }
+[data-stage-mode="true"] .text-slate-400 { color: #777777 !important; }
+
+/* Stage mode scrollbar - invisible */
+[data-stage-mode="true"] .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Stage mode active song card - subtle, no glow */
+[data-stage-mode="true"] .bg-primary\/10 {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Stage mode LIVE badge - dim red, no pulse */
+[data-stage-mode="true"] .bg-red-500 {
+  background-color: #550000 !important;
+}
+[data-stage-mode="true"] .text-red-400, 
+[data-stage-mode="true"] .text-red-500 {
+  color: #aa3333 !important;
+}
+
+/* Dim all background color utilities that add color */
+[data-stage-mode="true"] [class*="bg-primary"] { background-color: rgba(255,255,255,0.04) !important; }
+[data-stage-mode="true"] [class*="bg-secondary"] { background-color: rgba(255,255,255,0.03) !important; }
+[data-stage-mode="true"] [class*="bg-slate-800"],
+[data-stage-mode="true"] [class*="bg-slate-900"] { background-color: #080808 !important; }
+[data-stage-mode="true"] [class*="bg-surface"] { background-color: #000000 !important; }
+[data-stage-mode="true"] [class*="bg-black"] { background-color: #000000 !important; }
+
+/* Stage mode performance mode - special treatment for readability */
+[data-stage-mode="true"] .stage-mode-readable {
+  color: #e0e0e0 !important;
+}
+

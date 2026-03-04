@@ -144,7 +144,12 @@ export const useSession = (sessionId, role) => {
   };
 
   const toggleSongActive = async (id) => {
-      const newSongs = songs.map(s => ({ ...s, isActive: s.id === id }));
+      const newSongs = songs.map(s => {
+          if (s.id === id) {
+              return { ...s, isActive: !s.isActive };
+          }
+          return { ...s, isActive: false };
+      });
       setSongs(newSongs);
       try {
         await updateDoc(doc(db, 'sessions', sessionId), { songs: newSongs });

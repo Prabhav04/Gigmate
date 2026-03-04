@@ -1,76 +1,110 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Music, Minimize2, Maximize2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Music, Minimize2, Maximize2, Mic, Eye } from 'lucide-react';
+import Metronome from './Metronome';
+import LyricsView from './LyricsView';
 
 const PlayerBoard = ({ role, masterNotes, songs, personalNotes, onUpdatePersonal, isSaving, songPersonalNotes, onUpdateSongPersonal }) => {
     const [showGeneral, setShowGeneral] = useState(false);
     const [notesCollapsed, setNotesCollapsed] = useState(false);
+    const [showLyrics, setShowLyrics] = useState(false);
+
+    const activeSong = songs?.find(s => s.isActive);
 
     return (
-        <div className={`flex flex-col h-full gap-4 transition-all duration-300`}>
-            {/* Top Section: Setlist View - Takes remaining space */}
-            <div className={`bg-surface border border-glass-border rounded-xl flex flex-col overflow-hidden relative transition-all duration-300 ${notesCollapsed ? 'flex-1' : 'h-[75%] sm:h-[70%]'}`}>
-                <div className="p-3 border-b border-slate-800 bg-surface flex justify-between items-center z-10">
-                    <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                        <Music size={16} /> Setlist
-                    </h2>
-                    <button onClick={() => setShowGeneral(!showGeneral)} className="text-xs text-primary hover:underline">
-                        {showGeneral ? "Hide Info" : "Show General Info"}
-                    </button>
-                </div>
-
-                {/* General Info Overlay/Panel */}
-                {showGeneral && (
-                    <div className="absolute inset-0 top-10 bg-black/95 z-20 p-4 overflow-y-auto animate-fade-in backdrop-blur-sm">
-                        <h3 className="text-slate-500 mb-2 text-xs uppercase">General Info</h3>
-                        <div className="text-xl md:text-2xl text-white whitespace-pre-wrap leading-relaxed">{masterNotes}</div>
-                    </div>
-                )}
-
-                <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-black/50 custom-scrollbar">
-                    {songs && songs.map((song, index) => {
-                        const isActive = song.isActive;
-                        return (
-                            <AccordionSongItem
-                                key={song.id}
-                                song={song}
-                                index={index}
-                                isActive={isActive}
-                                myNote={songPersonalNotes?.[song.id] || ''}
-                                onUpdateMyNote={(text) => onUpdateSongPersonal && onUpdateSongPersonal(song.id, text)}
-                            />
-                        );
-                    })}
-                    {(!songs || songs.length === 0) && <div className="p-8 text-center text-slate-600">No songs yet.</div>}
-                </div>
-            </div>
-
-            {/* Bottom Section: Personal Notes - Fixed height or Collapsed */}
-            <div className={`bg-surface border border-glass-border rounded-xl flex flex-col transition-all duration-300 ${notesCollapsed ? 'h-[50px]' : 'h-[25%] sm:h-[30%] min-h-[150px]'}`}>
-                <div className="flex justify-between items-center p-3 border-b border-slate-800/50">
-                    <div className="flex items-center gap-2">
-                        <h2 className="text-xs font-bold text-secondary uppercase tracking-widest">{role} Scratchpad</h2>
-                        <div className={`text-[10px] text-slate-500 font-mono transition-opacity ${isSaving ? 'opacity-100' : 'opacity-0'}`}>
-                            SAVING...
+        <>
+            <div className={`flex flex-col h-full gap-4 transition-all duration-300`}>
+                {/* Top Section: Setlist View - Takes remaining space */}
+                <div className={`bg-surface border border-glass-border rounded-xl flex flex-col overflow-hidden relative transition-all duration-300 ${notesCollapsed ? 'flex-1' : 'h-[75%] sm:h-[70%]'}`}>
+                    <div className="p-3 border-b border-slate-800 bg-surface flex justify-between items-center z-10">
+                        <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                            <Music size={16} /> Setlist
+                        </h2>
+                        <div className="flex items-center gap-2">
+                            {role === 'singer' && activeSong && (
+                                <button
+                                    onClick={() => setShowLyrics(true)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/20 hover:bg-primary/30 text-primary rounded-lg text-xs font-bold transition-colors"
+                                >
+                                    <Mic size={14} /> Lyrics
+                                </button>
+                            )}
+                            <button onClick={() => setShowGeneral(!showGeneral)} className="text-xs text-primary hover:underline">
+                                {showGeneral ? "Hide Info" : "Show General Info"}
+                            </button>
                         </div>
                     </div>
-                    <button
-                        onClick={() => setNotesCollapsed(!notesCollapsed)}
-                        className="text-slate-500 hover:text-white transition-colors"
-                    >
-                        {notesCollapsed ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
-                    </button>
+
+                    {/* General Info Overlay/Panel */}
+                    {/* {showGeneral && (
+                        <div className="hidden absolute inset-0 top-10 bg-black/95 z-20 p-4 overflow-y-auto animate-fade-in backdrop-blur-sm">
+                            <h3 className="text-slate-500 mb-2 text-xs uppercase">General Info</h3>
+                            <div className="text-xl md:text-2xl text-white whitespace-pre-wrap leading-relaxed">{masterNotes}</div>
+                        </div>
+                    )} */}
+
+                    <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-black/50 custom-scrollbar">
+                        {songs && songs.map((song, index) => {
+                            const isActive = song.isActive;
+                            return (
+                                <AccordionSongItem
+                                    key={song.id}
+                                    song={song}
+                                    index={index}
+                                    isActive={isActive}
+                                    myNote={songPersonalNotes?.[song.id] || ''}
+                                    onUpdateMyNote={(text) => onUpdateSongPersonal && onUpdateSongPersonal(song.id, text)}
+                                    role={role}
+                                />
+                            );
+                        })}
+                        {(!songs || songs.length === 0) && <div className="p-8 text-center text-slate-600">No songs yet.</div>}
+                    </div>
                 </div>
 
-                {!notesCollapsed && (
-                    <textarea
-                        value={personalNotes}
-                        onChange={(e) => onUpdatePersonal(e.target.value)}
-                        placeholder={`Start typing to add global notes visible only to you...`}
-                        className="flex-1 w-full bg-black border-none p-4 text-lg text-white focus:outline-none focus:ring-1 focus:ring-secondary/50 transition-colors resize-none font-sans font-medium leading-relaxed tracking-wide placeholder:text-slate-800"
-                    />
-                )}
+                {/* Metronome */}
+                <Metronome
+                    suggestedBPM={songs.find(s => s.isActive)?.tempo ? parseInt(songs.find(s => s.isActive).tempo) : 120}
+                    suggestedTimeSig={songs.find(s => s.isActive)?.timeSig || '4/4'}
+                />
+
+                {/* Bottom Section: Personal Notes - Fixed height or Collapsed */}
+                <div className={`bg-surface border border-glass-border rounded-xl flex flex-col transition-all duration-300 ${notesCollapsed ? 'h-[50px]' : 'h-[25%] sm:h-[30%] min-h-[150px]'}`}>
+                    <div className="flex justify-between items-center p-3 border-b border-slate-800/50">
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-xs font-bold text-secondary uppercase tracking-widest">{role} Scratchpad</h2>
+                            <div className={`text-[10px] text-slate-500 font-mono transition-opacity ${isSaving ? 'opacity-100' : 'opacity-0'}`}>
+                                SAVING...
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setNotesCollapsed(!notesCollapsed)}
+                            className="text-slate-500 hover:text-white transition-colors"
+                        >
+                            {notesCollapsed ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
+                        </button>
+                    </div>
+
+                    {!notesCollapsed && (
+                        <textarea
+                            value={personalNotes}
+                            onChange={(e) => onUpdatePersonal(e.target.value)}
+                            placeholder={`Start typing to add global notes visible only to you...`}
+                            className="flex-1 w-full bg-black border-none p-4 text-lg text-white focus:outline-none focus:ring-1 focus:ring-secondary/50 transition-colors resize-none font-sans font-medium leading-relaxed tracking-wide placeholder:text-slate-800"
+                        />
+                    )}
+                </div>
             </div>
-        </div>
+
+            {/* Full-screen Lyrics View for Singers */}
+            {
+                showLyrics && activeSong && (
+                    <LyricsView
+                        song={activeSong}
+                        onClose={() => setShowLyrics(false)}
+                    />
+                )
+            }
+        </>
     );
 };
 
@@ -112,7 +146,7 @@ const renderWithTags = (text) => {
 };
 
 // Extracted for cleaner state management per item
-const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote }) => {
+const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote, role }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     // Auto-expand if active (Leader control), otherwise rely on user click
@@ -160,7 +194,7 @@ const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote }) =>
                     </div>
 
                     {/* Performance Cues Display */}
-                    {song.cues && song.cues.length > 0 && (
+                    {/* {song.cues && song.cues.length > 0 && (
                         <div className="flex flex-wrap gap-1 mx-2">
                             {song.cues.map(cue => (
                                 <span key={cue} className={`px-1.5 py-0.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded border ${isActive
@@ -171,7 +205,7 @@ const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote }) =>
                                 </span>
                             ))}
                         </div>
-                    )}
+                    )} */}
 
                     {isActive && (
                         <div className="flex items-center gap-2">
@@ -207,11 +241,13 @@ const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote }) =>
 
                         {/* My Personal Song Note */}
                         <div className="space-y-1">
-                            <h4 className="text-[10px] uppercase tracking-widest text-secondary font-bold">My Notes</h4>
+                            <h4 className="text-[10px] uppercase tracking-widest text-secondary font-bold">
+                                {role === 'singer' ? 'Lyrics' : 'My Notes'}
+                            </h4>
                             <textarea
                                 value={myNote}
                                 onChange={(e) => onUpdateMyNote(e.target.value)}
-                                placeholder="Add private notes for this song..."
+                                placeholder={role === 'singer' ? 'Add lyrics for this song...' : 'Add private notes for this song...'}
                                 className="w-full bg-black/50 border border-slate-800 rounded p-2 text-secondary/90 focus:border-secondary focus:outline-none text-base resize-none h-[80px]"
                             />
                         </div>

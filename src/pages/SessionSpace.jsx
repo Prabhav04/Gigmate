@@ -4,12 +4,16 @@ import RoleSelection from '../components/RoleSelection';
 import MasterBoard from '../components/MasterBoard';
 import PlayerBoard from '../components/PlayerBoard';
 import { useSession } from '../hooks/useSession';
-import { Share2, ArrowLeft } from 'lucide-react';
+import { Share2, ArrowLeft, Maximize } from 'lucide-react';
+import PerformanceMode from '../components/PerformanceMode';
+import { useStageMode } from '../hooks/useStageMode.jsx';
 
 const SessionSpace = () => {
     const { sessionId } = useParams();
 
     const [role, setRole] = useState(null);
+    const [isPerformanceMode, setIsPerformanceMode] = useState(false);
+    const { stageMode, toggleStageMode } = useStageMode();
 
     const {
         masterNotes,
@@ -71,7 +75,7 @@ const SessionSpace = () => {
                         <span className="hidden md:inline text-xs font-medium">{isConnected ? 'LIVE' : 'OFFLINE'}</span>
                     </div>
 
-                    <div className="text-[10px] md:text-sm font-bold px-2 py-1 md:px-4 md:py-1.5 rounded-lg bg-surface border border-glass-border shadow-sm text-white max-w-[100px] truncate">
+                    <div className="text-[10px] md:text-sm font-bold px-2 py-1 md:px-4 md:py-1.5 rounded-lg bg-surface border border-glass-border shadow-sm text-white max-w-[150px] truncate">
                         {role.toUpperCase()}
                     </div>
 
@@ -81,6 +85,25 @@ const SessionSpace = () => {
                         title="Copy Invite Link"
                     >
                         <Share2 size={16} className="md:w-5 md:h-5" />
+                    </button>
+
+                    <button
+                        onClick={toggleStageMode}
+                        className={`p-1.5 md:p-2 rounded-lg transition-all hover:scale-105 font-bold text-xs font-mono ${stageMode
+                                ? 'bg-white/10 text-white border border-white/20'
+                                : 'bg-slate-800 hover:bg-slate-700 text-slate-400'
+                            }`}
+                        title={stageMode ? 'Exit Stage Mode' : 'Stage Mode (OLED)'}
+                    >
+                        {stageMode ? '🌙' : '☀️'}
+                    </button>
+
+                    <button
+                        onClick={() => setIsPerformanceMode(true)}
+                        className="p-1.5 md:p-2 bg-secondary hover:bg-secondary/80 rounded-lg text-black transition-all hover:scale-105 shadow-lg shadow-secondary/25"
+                        title="Performance Mode"
+                    >
+                        <Maximize size={16} className={`md:w-5 md:h-5 ${stageMode ? 'text-white' : 'text-black'}`}  />
                     </button>
                 </div>
             </header>
@@ -112,6 +135,17 @@ const SessionSpace = () => {
                     />
                 )}
             </main>
+
+            {/* Performance Mode Overlay */}
+            {isPerformanceMode && (
+                <PerformanceMode
+                    songs={songs}
+                    songPersonalNotes={songPersonalNotes}
+                    masterNotes={masterNotes}
+                    role={role}
+                    onExit={() => setIsPerformanceMode(false)}
+                />
+            )}
         </div>
     );
 };

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Reorder, useDragControls } from 'framer-motion';
 import { GripVertical, Play, Circle, Plus, Trash2, FileText } from 'lucide-react';
+import Metronome from './Metronome';
 
 // Separate component for sortable item to use drag controls hook
 const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteSong }) => {
@@ -14,17 +15,9 @@ const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteS
             className={`p-3 md:p-4 rounded-lg border transition-all ${song.isActive ? 'bg-primary/10 border-primary shadow-[0_0_15px_rgba(167,139,250,0.1)]' : 'bg-black border-slate-800'}`}
         >
             <div className="flex items-start gap-2 md:gap-4">
-                <div
-                    className="pt-2 md:pt-3 text-slate-600 cursor-grab active:cursor-grabbing hover:text-slate-400 touch-none shrink-0"
-                    onPointerDown={(e) => dragControls.start(e)}
-                    title="Drag to reorder"
-                >
-                    <GripVertical size={16} className="md:w-5 md:h-5" />
-                </div>
-                <div className="pt-1.5 md:pt-2 text-slate-500 font-mono text-base md:text-lg font-bold shrink-0">#{index + 1}</div>
-
-                <div className="flex-1 space-y-2 md:space-y-3 min-w-0">
+                <div className="flex-1 space-y-2 md:space-y-6 min-w-0">
                     <div className="flex gap-2">
+                        <div className="pt-1.5 md:pt-2 text-slate-500 font-mono text-base md:text-lg font-bold shrink-0">#{index + 1}</div>
                         <input
                             type="text"
                             value={song.title}
@@ -34,7 +27,7 @@ const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteS
                         />
                     </div>
 
-                    <div className="flex gap-1.5 md:gap-2 text-[10px] md:text-sm">
+                    <div className="flex flex-row justify-between gap-1.5 md:gap-2 text-[13px] md:text-sm">
                         <input
                             type="text"
                             value={song.key || ''}
@@ -42,6 +35,7 @@ const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteS
                             placeholder="Key"
                             className="w-10 sm:w-16 md:w-20 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-1 md:px-2 md:py-1 text-slate-300 focus:border-primary focus:outline-none"
                         />
+                        <div className="flex flex-row gap-1">
                         <input
                             type="text"
                             value={song.tempo || ''}
@@ -56,39 +50,29 @@ const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteS
                             placeholder="Sig"
                             className="w-10 sm:w-16 md:w-20 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-1 md:px-2 md:py-1 text-slate-300 focus:border-primary focus:outline-none"
                         />
-                    </div>
-
-                    {/* Performance Cues Selection */}
-                    <div className="flex flex-wrap gap-1.5 md:gap-2 py-1">
-                        {['Acoustic Switch', 'Drop', 'Solo', 'Jam', 'Speech'].map(cue => (
-                            <button
-                                key={cue}
-                                onClick={() => {
-                                    const currentCues = song.cues || [];
-                                    const newCues = currentCues.includes(cue)
-                                        ? currentCues.filter(c => c !== cue)
-                                        : [...currentCues, cue];
-                                    onUpdateSong(song.id, 'cues', newCues);
-                                }}
-                                className={`px-1.5 py-0.5 md:px-2 md:py-1 rounded text-[10px] md:text-xs font-bold border transition-all ${(song.cues || []).includes(cue)
-                                    ? 'bg-secondary text-black border-secondary'
-                                    : 'bg-transparent text-slate-500 border-slate-700 hover:border-slate-500'
-                                    }`}
-                            >
-                                {cue}
-                            </button>
-                        ))}
+                        </div>
                     </div>
 
                     <textarea
                         value={song.notes}
                         onChange={(e) => onUpdateSong(song.id, 'notes', e.target.value)}
                         placeholder="Specific notes..."
-                        className="w-full bg-slate-900/50 rounded p-1.5 md:p-2 text-slate-300 min-h-[60px] md:min-h-[80px] focus:outline-none focus:ring-1 focus:ring-primary text-sm md:text-lg resize-y custom-scrollbar"
+                        height={400}
+                        className="w-full h-[200px] bg-slate-900/50 rounded p-1.5 md:p-2 text-slate-300 min-h-[60px] md:min-h-[80px] focus:outline-none focus:ring-1 focus:ring-primary text-sm md:text-lg resize-y custom-scrollbar"
                     />
                 </div>
+            </div>
+            {/* Tool bar Section */}
+            <div className="flex flex-row justify-between items-center gap-2 md:gap-4  rounded-lg w-full">
+                <div
+                    className="pt-2 md:pt-3 text-slate-600 cursor-grab active:cursor-grabbing hover:text-slate-400 touch-none shrink-0"
+                    onPointerDown={(e) => dragControls.start(e)}
+                    title="Drag to reorder"
+                >
+                    <GripVertical size={16} className="md:w-5 md:h-5" />
+                </div>
 
-                <div className="flex flex-col gap-1.5 md:gap-2 pt-1 shrink-0">
+                <div className="flex flex-row items-center gap-1.5 md:gap-2 pt-1 shrink-0">
                     <button
                         onClick={() => onToggleActive(song.id)}
                         className={`p-2 md:p-3 rounded-full transition-colors ${song.isActive ? 'bg-primary text-black shadow-[0_0_10px_rgba(167,139,250,0.4)]' : 'text-slate-500 hover:text-primary bg-slate-900 border border-slate-700'}`}
@@ -103,6 +87,7 @@ const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteS
                     </button>
                 </div>
             </div>
+            {/* <div className="bg-red-400 w-full">  hi </div> */}
         </Reorder.Item>
     );
 };
@@ -147,7 +132,7 @@ const MasterBoard = ({ notes, onUpdate, songs, onAddSong, onUpdateSong, onDelete
     return (
         <div className="flex flex-col h-full gap-4">
             {/* General Info Section */}
-            <div className="bg-surface border border-glass-border rounded-xl p-4 flex flex-col h-1/4 min-h-[150px]">
+            {/* <div className="bg-surface border border-glass-border rounded-xl p-4 flex flex-col h-1/4 min-h-[150px]">
                 <div className="flex justify-between items-center mb-2">
                     <h2 className="text-xl font-bold text-slate-400">General Info / Announcements</h2>
                     <div className={`flex items-center gap-2 text-green-400 text-xs font-mono transition-opacity duration-300 ${isSaving ? 'opacity-100' : 'opacity-50'}`}>
@@ -160,7 +145,13 @@ const MasterBoard = ({ notes, onUpdate, songs, onAddSong, onUpdateSong, onDelete
                     placeholder="General announcements..."
                     className="flex-1 w-full bg-black border border-slate-800 rounded-lg p-3 text-lg text-slate-300 focus:outline-none focus:border-primary transition-colors resize-none font-sans"
                 />
-            </div>
+            </div> */}
+
+            {/* Metronome */}
+            <Metronome
+                suggestedBPM={songs.find(s => s.isActive)?.tempo ? parseInt(songs.find(s => s.isActive).tempo) : 120}
+                suggestedTimeSig={songs.find(s => s.isActive)?.timeSig || '4/4'}
+            />
 
             {/* Setlist Builder Section */}
             <div className="flex-1 bg-surface border border-glass-border rounded-xl p-4 flex flex-col overflow-hidden relative">
