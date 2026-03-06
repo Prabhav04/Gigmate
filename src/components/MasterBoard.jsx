@@ -36,20 +36,20 @@ const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteS
                             className="w-10 sm:w-16 md:w-20 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-1 md:px-2 md:py-1 text-slate-300 focus:border-primary focus:outline-none"
                         />
                         <div className="flex flex-row gap-1">
-                        <input
-                            type="text"
-                            value={song.tempo || ''}
-                            onChange={(e) => onUpdateSong(song.id, 'tempo', e.target.value)}
-                            placeholder="BPM"
-                            className="w-10 sm:w-16 md:w-20 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-1 md:px-2 md:py-1 text-slate-300 focus:border-primary focus:outline-none"
-                        />
-                        <input
-                            type="text"
-                            value={song.timeSig || ''}
-                            onChange={(e) => onUpdateSong(song.id, 'timeSig', e.target.value)}
-                            placeholder="Sig"
-                            className="w-10 sm:w-16 md:w-20 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-1 md:px-2 md:py-1 text-slate-300 focus:border-primary focus:outline-none"
-                        />
+                            <input
+                                type="text"
+                                value={song.tempo || ''}
+                                onChange={(e) => onUpdateSong(song.id, 'tempo', e.target.value)}
+                                placeholder="BPM"
+                                className="w-10 sm:w-16 md:w-20 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-1 md:px-2 md:py-1 text-slate-300 focus:border-primary focus:outline-none"
+                            />
+                            <input
+                                type="text"
+                                value={song.timeSig || ''}
+                                onChange={(e) => onUpdateSong(song.id, 'timeSig', e.target.value)}
+                                placeholder="Sig"
+                                className="w-10 sm:w-16 md:w-20 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-1 md:px-2 md:py-1 text-slate-300 focus:border-primary focus:outline-none"
+                            />
                         </div>
                     </div>
 
@@ -132,20 +132,7 @@ const MasterBoard = ({ notes, onUpdate, songs, onAddSong, onUpdateSong, onDelete
     return (
         <div className="flex flex-col h-full gap-4">
             {/* General Info Section */}
-            {/* <div className="bg-surface border border-glass-border rounded-xl p-4 flex flex-col h-1/4 min-h-[150px]">
-                <div className="flex justify-between items-center mb-2">
-                    <h2 className="text-xl font-bold text-slate-400">General Info / Announcements</h2>
-                    <div className={`flex items-center gap-2 text-green-400 text-xs font-mono transition-opacity duration-300 ${isSaving ? 'opacity-100' : 'opacity-50'}`}>
-                        {isSaving ? "SAVING..." : "SAVED"}
-                    </div>
-                </div>
-                <textarea
-                    value={notes}
-                    onChange={(e) => onUpdate(e.target.value)}
-                    placeholder="General announcements..."
-                    className="flex-1 w-full bg-black border border-slate-800 rounded-lg p-3 text-lg text-slate-300 focus:outline-none focus:border-primary transition-colors resize-none font-sans"
-                />
-            </div> */}
+            {/*  */}
 
             {/* Metronome */}
             <Metronome
@@ -154,7 +141,7 @@ const MasterBoard = ({ notes, onUpdate, songs, onAddSong, onUpdateSong, onDelete
             />
 
             {/* Setlist Builder Section */}
-            <div className="flex-1 bg-surface border border-glass-border rounded-xl p-4 flex flex-col overflow-hidden relative">
+            <div className="flex-1 bg-slate-900 border border-glass-border rounded-xl p-4 flex flex-col overflow-hidden relative">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-bold text-primary">Setlist</h2>
                     <div className="flex gap-2">

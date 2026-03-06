@@ -131,8 +131,8 @@ const PerformanceMode = ({ songs, songPersonalNotes, masterNotes, role, onExit }
                     {/* Song Title & Metadata */}
                     <div className="text-center">
                         <h1 className={`text-5xl md:text-7xl lg:text-8xl font-bold mb-6 md:mb-8 transition-all ${isCurrentSongLive
-                            ? 'bg-gradient-to-r from-red-400 via-primary to-secondary bg-clip-text text-transparent scale-105'
-                            : 'bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent'
+                            ? 'bg-secondary bg-clip-text text-transparent scale-105'
+                            : 'bg-secondary bg-clip-text text-transparent'
                             }`}>
                             {currentSong.title}
                         </h1>

@@ -3,16 +3,16 @@ import { ATTAM_SETLIST_PRESET, ROCK_SETLIST_PRESET } from './presets';
 export const STUDIOS = [
     {
         id: 'gigmate-attam',
-        name: 'Attam Padam',
-        description: 'Setlist for Attam performances',
+        name: 'College Show',
+        description: 'Setlist for College performances',
         icon: '💃',
         color: 'from-pink-500 to-rose-500',
         defaultPreset: ATTAM_SETLIST_PRESET
     },
     {
         id: 'gigmate-rock',
-        name: 'Rock N Roll',
-        description: 'Hard Rock and High Energy',
+        name: 'GECT Setlist',
+        description: 'Rock and High Energy',
         icon: '🎸',
         color: 'from-purple-500 to-indigo-500',
         defaultPreset: ROCK_SETLIST_PRESET

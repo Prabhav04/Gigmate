@@ -90,8 +90,8 @@ const SessionSpace = () => {
                     <button
                         onClick={toggleStageMode}
                         className={`p-1.5 md:p-2 rounded-lg transition-all hover:scale-105 font-bold text-xs font-mono ${stageMode
-                                ? 'bg-white/10 text-white border border-white/20'
-                                : 'bg-slate-800 hover:bg-slate-700 text-slate-400'
+                            ? 'bg-white/10 text-white border border-white/20'
+                            : 'bg-slate-800 hover:bg-slate-700 text-slate-400'
                             }`}
                         title={stageMode ? 'Exit Stage Mode' : 'Stage Mode (OLED)'}
                     >
@@ -103,7 +103,7 @@ const SessionSpace = () => {
                         className="p-1.5 md:p-2 bg-secondary hover:bg-secondary/80 rounded-lg text-black transition-all hover:scale-105 shadow-lg shadow-secondary/25"
                         title="Performance Mode"
                     >
-                        <Maximize size={16} className={`md:w-5 md:h-5 ${stageMode ? 'text-white' : 'text-black'}`}  />
+                        <Maximize size={16} className={`md:w-5 md:h-5 ${stageMode ? 'text-white' : 'text-black'}`} />
                     </button>
                 </div>
             </header>

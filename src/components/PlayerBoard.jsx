@@ -16,22 +16,6 @@ const PlayerBoard = ({ role, masterNotes, songs, personalNotes, onUpdatePersonal
                 {/* Top Section: Setlist View - Takes remaining space */}
                 <div className={`bg-surface border border-glass-border rounded-xl flex flex-col overflow-hidden relative transition-all duration-300 ${notesCollapsed ? 'flex-1' : 'h-[75%] sm:h-[70%]'}`}>
                     <div className="p-3 border-b border-slate-800 bg-surface flex justify-between items-center z-10">
-                        {/* <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                            <Music size={16} /> Setlist
-                        </h2>
-                        <div className="flex items-center gap-2">
-                            {role === 'singer' && activeSong && (
-                                <button
-                                    onClick={() => setShowLyrics(true)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/20 hover:bg-primary/30 text-primary rounded-lg text-xs font-bold transition-colors"
-                                >
-                                    <Mic size={14} /> Lyrics
-                                </button>
-                            )}
-                            <button onClick={() => setShowGeneral(!showGeneral)} className="text-xs text-primary hover:underline">
-                                {showGeneral ? "Hide Info" : "Show General Info"}
-                            </button>
-                        </div> */}
                     </div>
 
                     {/* General Info Overlay/Panel */}
@@ -194,17 +178,7 @@ const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote, role
                     </div>
 
                     {/* Performance Cues Display */}
-                    {/* {song.cues && song.cues.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mx-2">
-                            {song.cues.map(cue => (
-                                <span key={cue} className={`px-1.5 py-0.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded border ${isActive
-                                    ? 'bg-secondary text-black border-secondary'
-                                    : 'bg-slate-800 text-secondary border-slate-700'
-                                    }`}>
-                                    {cue}
-                                </span>
-                            ))}
-                        </div>
+                    {/* 
                     )} */}
 
                     {isActive && (

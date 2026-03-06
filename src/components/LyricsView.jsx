@@ -172,8 +172,8 @@ const LyricsView = ({ song, onClose }) => {
                         <button
                             onClick={() => setIsAutoScrolling(!isAutoScrolling)}
                             className={`px-4 py-2 rounded-lg font-bold transition-all flex items-center gap-2 ${isAutoScrolling
-                                    ? 'bg-red-500 hover:bg-red-600 text-white'
-                                    : 'bg-green-500 hover:bg-green-600 text-white'
+                                ? 'bg-red-500 hover:bg-red-600 text-white'
+                                : 'bg-green-500 hover:bg-green-600 text-white'
                                 }`}
                         >
                             {isAutoScrolling ? <Pause size={18} /> : <Play size={18} />}

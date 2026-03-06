@@ -4,15 +4,16 @@
   --font-sans: "Inter", system-ui, sans-serif;
   --font-display: "Outfit", system-ui, sans-serif;
   
-  /* Custom Color Palette - Concert Dark Theme */
-  --color-background: #000000; /* Pure Black for OLED/Low light */
-  --color-surface: #121212;    /* Dark Gray for containers */
-  --color-primary: #a78bfa;    /* Brighter Violet for contrast */
-  --color-secondary: #22d3ee;  /* Brighter Cyan */
-  --color-accent: #fb7185;     /* Brighter Rose */
+  /* Custom Color Palette - GIGmate Signature */
+  --color-background: #0A171C; /* Deep Teal-Black */
+  --color-surface: #013F48;    /* Greenish Blue for containers */
+  --color-primary: #10ACAF;    /* Vibrant Teal - main accent */
+  --color-secondary: #FFF6E9;  /* Warm Cream - text/highlights */
+  --color-accent: #10ACAF;     /* Teal accent */
+  --color-primary-hover: #13c5c8; /* Slightly brighter teal for hover */
   
-  --glass-border: rgba(255, 255, 255, 0.15);
-  --glass-bg: #121212; /* Solid dark background for readability, no transparency */
+  --glass-border: rgba(255, 246, 233, 0.12);
+  --glass-bg: #013F48; /* Solid greenish-blue background for readability */
 }
 
 :root {
@@ -21,7 +22,7 @@
   font-weight: 400;
 
   color-scheme: dark;
-  color: #ffffff;
+  color: #FFF6E9;
   background-color: var(--color-background);
 
   font-synthesis: none;
@@ -84,28 +85,28 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(167, 139, 250, 0.3); /* Primary color low opacity */
+  background: rgba(16, 172, 175, 0.3); /* Primary teal low opacity */
   border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(167, 139, 250, 0.6);
+  background: rgba(16, 172, 175, 0.6);
 }
 
 /* Firefox */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(167, 139, 250, 0.3) rgba(255, 255, 255, 0.05);
+  scrollbar-color: rgba(16, 172, 175, 0.3) rgba(255, 246, 233, 0.05);
 }
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 0px rgba(34, 211, 238, 0);
-    border-color: rgba(34, 211, 238, 0.5);
+    box-shadow: 0 0 0px rgba(16, 172, 175, 0);
+    border-color: rgba(16, 172, 175, 0.5);
   }
   50% {
-    box-shadow: 0 0 15px rgba(34, 211, 238, 0.8);
-    border-color: rgba(34, 211, 238, 1);
+    box-shadow: 0 0 15px rgba(16, 172, 175, 0.8);
+    border-color: rgba(16, 172, 175, 1);
   }
 }
 
@@ -115,13 +116,13 @@ body {
    ============================================ */
 
 [data-stage-mode="true"] {
-  --color-background: #000000;
-  --color-surface: #000000;
+  --color-background: #1b1818;
+  --color-surface: #1b1818;
   --color-primary: #888888;
   --color-secondary: #666666;
   --color-accent: #555555;
   --glass-border: rgba(255, 255, 255, 0.06);
-  --glass-bg: #000000;
+  --glass-bg: #1b1818;
 }
 
 /* Kill all glows and shadows in stage mode */
