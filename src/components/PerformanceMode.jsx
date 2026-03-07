@@ -140,16 +140,16 @@ const PerformanceMode = ({ songs, songPersonalNotes, masterNotes, role, onExit }
                         {/* Song Details */}
                         <div className="flex flex-wrap gap-4 md:gap-6 justify-center">
                             {currentSong.key && (
-                                <div className={`rounded-xl px-6 md:px-10 py-4 md:py-6 border-2 ${isCurrentSongLive
+                                <div className={`rounded-xl px-6 md:px-6 py-4 md:py-6 border-2 ${isCurrentSongLive
                                     ? 'bg-primary/20 border-primary shadow-[0_0_30px_rgba(167,139,250,0.4)]'
                                     : 'bg-slate-900 border-slate-700'
                                     }`}>
-                                    <div className="text-xs md:text-sm text-slate-400 uppercase font-bold mb-2">Key</div>
+                                    <div className="text-xs md:text-xs text-slate-400 uppercase font-bold mb-2">Key</div>
                                     <div className="text-3xl md:text-5xl font-bold text-primary font-mono">{currentSong.key}</div>
                                 </div>
                             )}
                             {currentSong.tempo && (
-                                <div className={`rounded-xl px-6 md:px-10 py-4 md:py-6 border-2 ${isCurrentSongLive
+                                <div className={`rounded-xl px-6 md:px-6 py-4 md:py-6 border-2 ${isCurrentSongLive
                                     ? 'bg-secondary/20 border-secondary shadow-[0_0_30px_rgba(34,211,238,0.4)]'
                                     : 'bg-slate-900 border-slate-700'
                                     }`}>
@@ -158,7 +158,7 @@ const PerformanceMode = ({ songs, songPersonalNotes, masterNotes, role, onExit }
                                 </div>
                             )}
                             {currentSong.timeSig && (
-                                <div className={`rounded-xl px-6 md:px-10 py-4 md:py-6 border-2 ${isCurrentSongLive
+                                <div className={`rounded-xl px-6 md:px-6 py-4 md:py-6 border-2 ${isCurrentSongLive
                                     ? 'bg-white/10 border-white/30 shadow-[0_0_30px_rgba(255,255,255,0.2)]'
                                     : 'bg-slate-900 border-slate-700'
                                     }`}>
@@ -169,7 +169,7 @@ const PerformanceMode = ({ songs, songPersonalNotes, masterNotes, role, onExit }
                         </div>
 
                         {/* Performance Cues */}
-                        {currentSong.cues && currentSong.cues.length > 0 && (
+                        {/* {currentSong.cues && currentSong.cues.length > 0 && (
                             <div className="flex flex-wrap gap-3 md:gap-4 justify-center mt-6 md:mt-8">
                                 {currentSong.cues.map((cue, idx) => (
                                     <span
@@ -180,7 +180,7 @@ const PerformanceMode = ({ songs, songPersonalNotes, masterNotes, role, onExit }
                                     </span>
                                 ))}
                             </div>
-                        )}
+                        )} */}
                     </div>
 
                     {/* Notes Section - Different Layout Depending on Role */}
