@@ -191,6 +191,17 @@ const MasterBoard = ({ notes, onUpdate, songs, onAddSong, onUpdateSong, onDelete
                             >
                                 Load "Attam Setlist" Preset
                             </button>
+                            <button
+                                onClick={() => {
+                                    import('../constants/presets').then(({ MARRIAGE_SETLIST_PRESET }) => {
+                                        loadPreset(MARRIAGE_SETLIST_PRESET);
+                                        setShowImport(false);
+                                    });
+                                }}
+                                className="px-4 py-2 bg-gradient-to-r from-pink-600 to-rose-600 rounded-lg text-white font-bold text-sm whitespace-nowrap hover:scale-105 transition-transform"
+                            >
+                                Load "Marriage Setlist" Preset
+                            </button>
                             {/* Add more presets here if needed */}
                         </div>
 

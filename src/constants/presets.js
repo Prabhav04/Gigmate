@@ -1,3 +1,286 @@
+export const MARRIAGE_SETLIST_PRESET = [
+  {
+    "id": "marriage-1",
+    "title": "Nagumo",
+    "key": "Dmin",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Slow acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-2",
+    "title": "Onnam Ragam Paadi",
+    "key": "Dmin",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Slow acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-3",
+    "title": "Doore Kizhakkudikkum x Sainabaa",
+    "key": "",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Slow acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-4",
+    "title": "Ae Hairathe x Tera Bina",
+    "key": "D",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Drop in 4 bar (F)",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-5",
+    "title": "Seetha Kallyana (Agam)",
+    "key": "F",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Slow acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-6",
+    "title": "Sundari (Drop Naan Unnaye) x Ennavale",
+    "key": "E",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Slow acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-7",
+    "title": "Nila Nila Mizhiye x Mithva",
+    "key": "F",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Slow acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-8",
+    "title": "Sayyave",
+    "key": "D",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Slow acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-9",
+    "title": "Chentharmizhi x Kumari",
+    "key": "E",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Slow acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-10",
+    "title": "Oru Pushpam",
+    "key": "F",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Slow acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-11",
+    "title": "Manjupole",
+    "key": "F",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Slow acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-12",
+    "title": "Oru Kaathilola",
+    "key": "F",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Slow acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-13",
+    "title": "Kurukk Siruthavale",
+    "key": "G",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Slow acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-14",
+    "title": "Kaathil Thenmazha",
+    "key": "F",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Slow acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-15",
+    "title": "Pathinezhinte",
+    "key": "Emin",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Slow acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-16",
+    "title": "Ente Ellam x Onnamkili",
+    "key": "E",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Fast acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-17",
+    "title": "Varaha Nadhikkarai",
+    "key": "E",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Fast acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-18",
+    "title": "Kallyana Kacheri",
+    "key": "D",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Fast acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-19",
+    "title": "Mizhikalil Naanam",
+    "key": "Emin",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Fast acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-20",
+    "title": "Enthae Innum",
+    "key": "Emaj",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Fast acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-21",
+    "title": "Kantha",
+    "key": "Emaj",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Fast acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-22",
+    "title": "Ethra Kothichittum x Pachamanga x Karukaruthoru",
+    "key": "E",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Fast acoustic (Alfy T +2)",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-23",
+    "title": "Munthiripadam",
+    "key": "F#min",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Fast acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-24",
+    "title": "Kuttanadan Kayalile",
+    "key": "Bmin / D",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "D in Pallavi",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-25",
+    "title": "Sundari Onnu Parayoo",
+    "key": "Dm",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Fast acoustic",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-26",
+    "title": "Karimizhikuruviye",
+    "key": "Emin",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Backup",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-27",
+    "title": "Nilamalare",
+    "key": "E",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Backup",
+    "cues": [],
+    "isActive": false
+  },
+  {
+    "id": "marriage-28",
+    "title": "Sundariye",
+    "key": "E",
+    "tempo": "",
+    "timeSig": "",
+    "notes": "Backup",
+    "cues": [],
+    "isActive": false
+  }
+];
+
 export const ROCK_SETLIST_PRESET = [
     {
         id: "rock-1",

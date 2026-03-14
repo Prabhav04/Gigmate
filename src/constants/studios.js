@@ -1,4 +1,4 @@
-import { ATTAM_SETLIST_PRESET, ROCK_SETLIST_PRESET } from './presets';
+import { ATTAM_SETLIST_PRESET, ROCK_SETLIST_PRESET, MARRIAGE_SETLIST_PRESET } from './presets';
 
 export const STUDIOS = [
     {
@@ -24,5 +24,14 @@ export const STUDIOS = [
         icon: '🎹',
         color: 'from-blue-500 to-cyan-500',
         defaultPreset: []
-    }
+    },
+    {
+        id: 'gigmate-marriage',
+        name: 'Marriage',
+        description: 'Setlist for Marriage',
+        icon: '💒',
+        color: 'from-pink-500 to-rose-500',
+        defaultPreset: MARRIAGE_SETLIST_PRESET
+    },
+    
 ];
