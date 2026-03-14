@@ -144,6 +144,7 @@ const SessionSpace = () => {
                     masterNotes={masterNotes}
                     role={role}
                     onExit={() => setIsPerformanceMode(false)}
+                    onToggleActive={toggleSongActive}
                 />
             )}
         </div>

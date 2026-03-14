@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, Edit3, Music } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Edit3, Music, Play } from 'lucide-react';
 
-const PerformanceMode = ({ songs, songPersonalNotes, masterNotes, role, onExit }) => {
+const PerformanceMode = ({ songs, songPersonalNotes, masterNotes, role, onExit, onToggleActive }) => {
     const activeSongIndex = songs.findIndex(s => s.isActive);
     const [currentIndex, setCurrentIndex] = useState(activeSongIndex >= 0 ? activeSongIndex : 0);
     const [singerTab, setSingerTab] = useState('lyrics');
@@ -108,11 +108,22 @@ const PerformanceMode = ({ songs, songPersonalNotes, masterNotes, role, onExit }
                     <div className="text-sm md:text-base text-slate-400 font-mono">
                         Song {currentIndex + 1} of {songs.length}
                     </div>
-                    {isCurrentSongLive && (
+                    {isCurrentSongLive ? (
                         <div className="flex items-center gap-2 bg-red-500/20 border border-red-500 px-4 py-2 rounded-lg animate-pulse">
                             <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]"></div>
                             <span className="text-red-400 font-bold text-sm md:text-base">NOW PLAYING</span>
                         </div>
+                    ) : (
+                        role === 'keyboard' && (
+                            <button
+                                onClick={() => onToggleActive(currentSong.id)}
+                                className="flex items-center gap-2 px-4 py-2 bg-primary/20 hover:bg-primary/40 border border-primary/50 text-white rounded-lg transition-all hover:scale-105 font-bold shadow-[0_0_15px_rgba(167,139,250,0.3)]"
+                                title="Make this the active live song"
+                            >
+                                <Play size={18} fill="currentColor" />
+                                <span className="hidden md:inline">Make Live</span>
+                            </button>
+                        )
                     )}
                 </div>
                 <button
