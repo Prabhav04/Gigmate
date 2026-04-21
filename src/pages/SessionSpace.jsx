@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import RoleSelection from '../components/RoleSelection';
 import MasterBoard from '../components/MasterBoard';
 import PlayerBoard from '../components/PlayerBoard';
@@ -10,6 +10,8 @@ import { useStageMode } from '../hooks/useStageMode.jsx';
 
 const SessionSpace = () => {
     const { sessionId } = useParams();
+    const location = useLocation();
+    const sessionName = location.state?.sessionName || null;
 
     const [role, setRole] = useState(null);
     const [isPerformanceMode, setIsPerformanceMode] = useState(false);
@@ -32,7 +34,7 @@ const SessionSpace = () => {
         error,
         isSaving,
         importSongs
-    } = useSession(sessionId, role);
+    } = useSession(sessionId, role, sessionName);
 
     const copyInvite = () => {
         navigator.clipboard.writeText(window.location.href);
@@ -64,8 +66,11 @@ const SessionSpace = () => {
                         <span className="text-slate-600">/</span>
                     </div>
 
-                    <span className="text-slate-200 font-mono text-sm truncate min-w-0 flex-1 md:flex-none" title={sessionId}>
-                        {sessionId}
+                    <span
+                        className="text-slate-200 font-semibold text-sm truncate min-w-0 flex-1 md:flex-none"
+                        title={sessionId}
+                    >
+                        {sessionName || sessionId}
                     </span>
                 </div>
 

@@ -4,7 +4,7 @@ import { doc, onSnapshot, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 
 import { STUDIOS } from '../constants/studios';
 
-export const useSession = (sessionId, role) => {
+export const useSession = (sessionId, role, sessionName) => {
   const [masterNotes, setMasterNotes] = useState("");
   const [personalNotes, setPersonalNotes] = useState("");
   const [songPersonalNotes, setSongPersonalNotes] = useState({}); // Map of songId -> note
@@ -39,7 +39,9 @@ export const useSession = (sessionId, role) => {
                 }));
 
                 await setDoc(docRef, {
-                    masterNotes: knownStudio ? `Welcome to ${knownStudio.name}! session.` : "Welcome! Use the General Info for announcements.",
+                    masterNotes: knownStudio ? `Welcome to ${knownStudio.name}! session.` : "",
+                    name: knownStudio ? knownStudio.name : (sessionName || 'Untitled Setlist'),
+                    type: knownStudio ? 'studio' : 'setlist',
                     songs: hydratedSongs,
                     createdAt: new Date()
                 });
