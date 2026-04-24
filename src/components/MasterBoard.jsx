@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Reorder, useDragControls } from 'framer-motion';
 import { GripVertical, Play, Circle, Plus, Trash2, FileText } from 'lucide-react';
 import Metronome from './Metronome';
@@ -95,6 +95,23 @@ const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteS
 const MasterBoard = ({ notes, onUpdate, songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSongs, onToggleActive, isSaving, onImportSongs }) => {
     const [showImport, setShowImport] = useState(false);
     const [importText, setImportText] = useState('');
+    const listRef = useRef(null);
+
+    const scrollToBottom = () => {
+        setTimeout(() => {
+            if (listRef.current) {
+                listRef.current.scrollTo({
+                    top: listRef.current.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+        }, 150);
+    };
+
+    const handleAddSongClick = () => {
+        onAddSong();
+        scrollToBottom();
+    };
 
     const handleImport = () => {
         if (!importText.trim()) return;
@@ -121,12 +138,14 @@ const MasterBoard = ({ notes, onUpdate, songs, onAddSong, onUpdateSong, onDelete
         if (onImportSongs) onImportSongs(newSongs);
         setShowImport(false);
         setImportText('');
+        scrollToBottom();
     };
 
     const loadPreset = (presetSongs) => {
         // Generate new IDs to avoid conflicts if imported multiple times
         const newSongs = presetSongs.map(s => ({ ...s, id: Date.now().toString() + Math.random().toString(36).substr(2, 9) }));
         if (onImportSongs) onImportSongs(newSongs);
+        scrollToBottom();
     };
 
     return (
@@ -152,7 +171,7 @@ const MasterBoard = ({ notes, onUpdate, songs, onAddSong, onUpdateSong, onDelete
                             <FileText size={18} /> Import
                         </button>
                         <button
-                            onClick={onAddSong}
+                            onClick={handleAddSongClick}
                             className="flex items-center gap-2 bg-primary hover:bg-primary/80 text-background font-bold px-4 py-2 rounded-lg transition-colors text-sm"
                         >
                             <Plus size={18} /> Add Song
@@ -220,7 +239,7 @@ const MasterBoard = ({ notes, onUpdate, songs, onAddSong, onUpdateSong, onDelete
                     </div>
                 )}
 
-                <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+                <div ref={listRef} className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
                     {songs && songs.length > 0 ? (
                         <Reorder.Group axis="y" values={songs} onReorder={onReorderSongs} className="space-y-4">
                             {songs.map((song, index) => (
