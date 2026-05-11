@@ -3,8 +3,7 @@ import { ChevronDown, ChevronUp, Music, Minimize2, Maximize2, Mic, Eye } from 'l
 import Metronome from './Metronome';
 import LyricsView from './LyricsView';
 
-const PlayerBoard = ({ role, masterNotes, songs, personalNotes, onUpdatePersonal, isSaving, songPersonalNotes, onUpdateSongPersonal }) => {
-    const [showGeneral, setShowGeneral] = useState(false);
+const PlayerBoard = ({ role, songs, personalNotes, onUpdatePersonal, isSaving, songPersonalNotes, onUpdateSongPersonal }) => {
     const [notesCollapsed, setNotesCollapsed] = useState(false);
     const [showLyrics, setShowLyrics] = useState(false);
 

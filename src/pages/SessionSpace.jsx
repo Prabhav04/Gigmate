@@ -30,6 +30,9 @@ const SessionSpace = () => {
         updatePersonalNotes,
         songPersonalNotes,
         updateSongPersonalNote,
+        broadcastMessage,
+        sendBroadcast,
+        dismissBroadcast,
         isConnected,
         error,
         isSaving,
@@ -150,6 +153,9 @@ const SessionSpace = () => {
                     role={role}
                     onExit={() => setIsPerformanceMode(false)}
                     onToggleActive={toggleSongActive}
+                    broadcastMessage={broadcastMessage}
+                    onSendBroadcast={sendBroadcast}
+                    onDismissBroadcast={dismissBroadcast}
                 />
             )}
         </div>

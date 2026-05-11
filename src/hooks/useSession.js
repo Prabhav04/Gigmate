@@ -9,6 +9,7 @@ export const useSession = (sessionId, role, sessionName) => {
   const [personalNotes, setPersonalNotes] = useState("");
   const [songPersonalNotes, setSongPersonalNotes] = useState({}); // Map of songId -> note
   const [songs, setSongs] = useState([]);
+  const [broadcastMessage, setBroadcastMessage] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -63,6 +64,8 @@ export const useSession = (sessionId, role, sessionName) => {
              setMasterNotes(data.masterNotes || "");
              setSongs(data.songs || []);
          }
+         // Always sync broadcast for responsiveness
+         setBroadcastMessage(data.broadcastMessage || null);
          setIsConnected(true);
        } else {
            setIsConnected(false);
@@ -74,7 +77,7 @@ export const useSession = (sessionId, role, sessionName) => {
     });
 
     return () => unsubSession();
-  }, [sessionId]);
+  }, [sessionId, sessionName]);
 
   // Subscribe to Personal Notes (Cloud Sync)
   useEffect(() => {
@@ -195,6 +198,26 @@ export const useSession = (sessionId, role, sessionName) => {
       }
   };
 
+  const sendBroadcast = async (message) => {
+      try {
+          await updateDoc(doc(db, 'sessions', sessionId), {
+              broadcastMessage: { ...message, sentAt: new Date().toISOString() }
+          });
+      } catch (e) {
+          console.error('Broadcast failed:', e);
+          setError('Broadcast Failed');
+      }
+  };
+
+  const dismissBroadcast = async () => {
+      setBroadcastMessage(null);
+      try {
+          await updateDoc(doc(db, 'sessions', sessionId), { broadcastMessage: null });
+      } catch (e) {
+          console.error('Dismiss broadcast failed:', e);
+      }
+  };
+
   const importSongs = async (newSongsToImport) => {
       // Append or Replace? Let's Append for safety, or we could offer a choice.
       // For this specific "Preset" use case, the user likely wants to populate an empty session or add to it.
@@ -214,6 +237,9 @@ export const useSession = (sessionId, role, sessionName) => {
     masterNotes,
     songs,
     personalNotes,
+    broadcastMessage,
+    sendBroadcast,
+    dismissBroadcast,
     addSong,
     updateSong,
     deleteSong,

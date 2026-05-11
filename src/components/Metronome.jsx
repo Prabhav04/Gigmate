@@ -64,6 +64,7 @@ const Metronome = ({ suggestedBPM = 120, suggestedTimeSig = '4/4' }) => {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
             }
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setBeat(0);
         }
 
@@ -105,17 +106,20 @@ const Metronome = ({ suggestedBPM = 120, suggestedTimeSig = '4/4' }) => {
     // Auto-sync with active song's tempo and time signature
     useEffect(() => {
         if (suggestedBPM && suggestedBPM !== bpm) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setBpm(suggestedBPM);
         }
-    }, [suggestedBPM]);
+    }, [suggestedBPM, bpm]);
 
     useEffect(() => {
         if (suggestedTimeSig && suggestedTimeSig !== timeSig) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setTimeSig(suggestedTimeSig);
             // Reset beat when time signature changes
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setBeat(0);
         }
-    }, [suggestedTimeSig]);
+    }, [suggestedTimeSig, timeSig]);
 
     return (
         <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-3 md:p-4 flex flex-col md:flex-row items-center gap-3 md:gap-4">

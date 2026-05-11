@@ -1,13 +1,173 @@
-import React, { useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, Edit3, Music, Play } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, ChevronLeft, ChevronRight, Edit3, Music, Play, Menu, Mic, Repeat, Zap, Megaphone, Camera, Users, Radio } from 'lucide-react';
 
-const PerformanceMode = ({ songs, songPersonalNotes, masterNotes, role, onExit, onToggleActive }) => {
+// Icon components for menu items (SVG via lucide-react)
+const MENU_ICONS = {
+    mic: (props) => <Mic {...props} />,
+    repeat: (props) => <Repeat {...props} />,
+    zap: (props) => <Zap {...props} />,
+    megaphone: (props) => <Megaphone {...props} />,
+    camera: (props) => <Camera {...props} />,
+};
+
+// Broadcast overlay icons (larger)
+const BROADCAST_ICONS = {
+    mic: (props) => <Mic {...props} />,
+    repeat: (props) => <Repeat {...props} />,
+    zap: (props) => <Zap {...props} />,
+    megaphone: (props) => <Megaphone {...props} />,
+    camera: (props) => <Camera {...props} />,
+};
+
+// Radial menu item definitions
+const SHOW_MENU_ITEMS = [
+    { icon: 'mic', label: 'Crowd Sing!', text: 'Everybody Sing!', category: 'audience' },
+    { icon: 'repeat', label: 'One More Time!', text: 'One More Time!', category: 'audience' },
+    { icon: 'zap', label: 'Hype Check', text: "Let's Goooo!", category: 'audience' },
+    { icon: 'megaphone', label: 'Follow Us!', text: 'Follow us on Instagram!', category: 'promotion' },
+    { icon: 'camera', label: 'Tag Us!', text: 'Tag us in your stories!', category: 'promotion' },
+];
+
+// --- Radial Menu Component (Keyboard only) ---
+const RadialShowMenu = ({ onSendBroadcast }) => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    const handleItemClick = (item) => {
+        onSendBroadcast({
+            text: item.text,
+            icon: item.icon,
+            category: item.category,
+        });
+        setIsOpen(false);
+    };
+
+    const IconComponent = (iconKey, props) => {
+        const Renderer = MENU_ICONS[iconKey];
+        return Renderer ? Renderer(props) : null;
+    };
+
+    return (
+        <div className="fixed bottom-24 right-6 z-[60] flex flex-col md:flex-row gap-4 md:gap-10 items-end">
+            {/* Menu items — only visible when open */}
+            {isOpen && SHOW_MENU_ITEMS.map((item, index) => (
+                <button
+                    key={item.label}
+                    onClick={() => handleItemClick(item)}
+                    className="transition-all duration-300 ease-out animate-radial-in"
+                    style={{ animationDelay: `${index * 60}ms` }}
+                    title={item.label}
+                >
+                    {/* Label pill */}
+                    <span className="bg-surface/95 backdrop-blur-md border border-glass-border text-secondary text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap shadow-lg pointer-events-none">
+                        {item.label}
+                    </span>
+                    {/* Icon circle */}
+                    <span className="w-11 h-11 flex items-center justify-center rounded-full bg-surface border-2 border-primary/50 shadow-lg shadow-primary/20 hover:scale-110 hover:border-primary transition-transform cursor-pointer shrink-0">
+                        {IconComponent(item.icon, { size: 20, className: 'text-primary' })}
+                    </span>
+                </button>
+            ))}
+
+            {/* Hamburger trigger button */}
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className={`relative w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    isOpen
+                        ? 'bg-red-500/90 rotate-45 scale-110'
+                        : 'bg-primary/90 animate-hamburger-glow'
+                } shadow-lg hover:scale-110`}
+                title={isOpen ? 'Close Menu' : 'Show Menu'}
+            >
+                {isOpen ? (
+                    <X size={24} className="text-white rotate-45" />
+                ) : (
+                    <Menu size={24} className="text-white" />
+                )}
+            </button>
+        </div>
+    );
+};
+
+// --- Broadcast Overlay Component (All roles) ---
+const BroadcastOverlay = ({ message, isKeyboard, onDismiss }) => {
+    if (!message) return null;
+
+    const IconComponent = BROADCAST_ICONS[message.icon];
+
+    return (
+        <div
+            className="fixed inset-0 z-[70] flex flex-col items-center justify-center animate-broadcast-backdrop"
+            style={{ background: 'rgba(0, 0, 0, 0.85)' }}
+        >
+            {/* Pulse rings behind icon */}
+            <div className="relative flex items-center justify-center mb-8">
+                <div
+                    className="absolute w-40 h-40 rounded-full border-2 border-primary/40 animate-broadcast-ring"
+                />
+                <div
+                    className="absolute w-40 h-40 rounded-full border-2 border-primary/30 animate-broadcast-ring"
+                    style={{ animationDelay: '0.5s' }}
+                />
+                <div
+                    className="absolute w-40 h-40 rounded-full border-2 border-primary/20 animate-broadcast-ring"
+                    style={{ animationDelay: '1s' }}
+                />
+                {/* Icon */}
+                <div className="w-28 h-28 md:w-36 md:h-36 rounded-full bg-primary/15 border-2 border-primary/40 flex items-center justify-center animate-broadcast-emoji relative z-10">
+                    {IconComponent && IconComponent({ size: 64, className: 'text-primary md:w-20 md:h-20' })}
+                </div>
+            </div>
+
+            {/* Message text */}
+            <h2 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white text-center px-8 animate-broadcast-text font-display tracking-tight">
+                {message.text}
+            </h2>
+
+            {/* Category pill */}
+            <div className="animate-broadcast-text mt-6" style={{ animationDelay: '0.5s' }}>
+                <span className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold uppercase tracking-widest ${
+                    message.category === 'audience'
+                        ? 'bg-primary/20 text-primary border border-primary/40'
+                        : 'bg-secondary/20 text-secondary border border-secondary/40'
+                }`}>
+                    {message.category === 'audience' ? <><Users size={16} /> Audience</> : <><Radio size={16} /> Promotion</>}
+                </span>
+            </div>
+
+            {/* Dismiss button — keyboard only */}
+            {isKeyboard && (
+                <button
+                    onClick={onDismiss}
+                    className="mt-12 flex items-center gap-2 px-8 py-4 bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 text-red-400 font-bold rounded-xl transition-all hover:scale-105 text-lg animate-broadcast-text"
+                    style={{ animationDelay: '0.7s' }}
+                >
+                    <X size={22} />
+                    Close on All Screens
+                </button>
+            )}
+        </div>
+    );
+};
+
+const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActive, broadcastMessage, onSendBroadcast, onDismissBroadcast }) => {
     const activeSongIndex = songs.findIndex(s => s.isActive);
     const [currentIndex, setCurrentIndex] = useState(activeSongIndex >= 0 ? activeSongIndex : 0);
     const [singerTab, setSingerTab] = useState('lyrics');
 
     const currentSong = songs[currentIndex];
     const isCurrentSongLive = currentSong?.isActive;
+
+    const goNext = useCallback(() => {
+        if (currentIndex < songs.length - 1) {
+            setCurrentIndex(currentIndex + 1);
+        }
+    }, [currentIndex, songs.length]);
+
+    const goPrevious = useCallback(() => {
+        if (currentIndex > 0) {
+            setCurrentIndex(currentIndex - 1);
+        }
+    }, [currentIndex]);
 
     // Keyboard navigation
     useEffect(() => {
@@ -23,26 +183,15 @@ const PerformanceMode = ({ songs, songPersonalNotes, masterNotes, role, onExit, 
 
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [currentIndex, songs.length]);
+    }, [goNext, goPrevious, onExit]);
 
     // Auto-focus on active song when it changes
     useEffect(() => {
         if (activeSongIndex >= 0 && activeSongIndex !== currentIndex) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setCurrentIndex(activeSongIndex);
         }
-    }, [activeSongIndex]);
-
-    const goNext = () => {
-        if (currentIndex < songs.length - 1) {
-            setCurrentIndex(currentIndex + 1);
-        }
-    };
-
-    const goPrevious = () => {
-        if (currentIndex > 0) {
-            setCurrentIndex(currentIndex - 1);
-        }
-    };
+    }, [activeSongIndex, currentIndex]);
 
     // Render text with tags |DROP| and chords [Am]
     const renderWithTags = (text) => {
@@ -326,6 +475,18 @@ const PerformanceMode = ({ songs, songPersonalNotes, masterNotes, role, onExit, 
                     <ChevronRight size={24} />
                 </button>
             </div>
+
+            {/* Radial Show Menu — Keyboard only */}
+            {role === 'keyboard' && (
+                <RadialShowMenu onSendBroadcast={onSendBroadcast} />
+            )}
+
+            {/* Broadcast Overlay — All roles */}
+            <BroadcastOverlay
+                message={broadcastMessage}
+                isKeyboard={role === 'keyboard'}
+                onDismiss={onDismissBroadcast}
+            />
         </div>
     );
 };

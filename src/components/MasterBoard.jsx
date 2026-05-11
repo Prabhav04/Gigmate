@@ -92,7 +92,7 @@ const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteS
     );
 };
 
-const MasterBoard = ({ notes, onUpdate, songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSongs, onToggleActive, isSaving, onImportSongs }) => {
+const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSongs, onToggleActive, onImportSongs }) => {
     const [showImport, setShowImport] = useState(false);
     const [importText, setImportText] = useState('');
     const listRef = useRef(null);
