@@ -187,11 +187,10 @@ const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActiv
 
     // Auto-focus on active song when it changes
     useEffect(() => {
-        if (activeSongIndex >= 0 && activeSongIndex !== currentIndex) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (activeSongIndex >= 0) {
             setCurrentIndex(activeSongIndex);
         }
-    }, [activeSongIndex, currentIndex]);
+    }, [activeSongIndex]);
 
     // Render text with tags |DROP| and chords [Am]
     const renderWithTags = (text) => {
