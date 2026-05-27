@@ -116,7 +116,6 @@ const Metronome = ({ suggestedBPM = 120, suggestedTimeSig = '4/4' }) => {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setTimeSig(suggestedTimeSig);
             // Reset beat when time signature changes
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setBeat(0);
         }
     }, [suggestedTimeSig, timeSig]);

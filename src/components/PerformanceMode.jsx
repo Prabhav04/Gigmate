@@ -188,6 +188,7 @@ const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActiv
     // Auto-focus on active song when it changes
     useEffect(() => {
         if (activeSongIndex >= 0) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setCurrentIndex(activeSongIndex);
         }
     }, [activeSongIndex]);

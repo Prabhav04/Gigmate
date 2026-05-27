@@ -1,20 +1,85 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Music, Minimize2, Maximize2, Mic, Eye } from 'lucide-react';
+import { ChevronDown, ChevronUp, Music, Minimize2, Maximize2, Mic, Eye, BookOpen } from 'lucide-react';
 import Metronome from './Metronome';
 import LyricsView from './LyricsView';
 
-const PlayerBoard = ({ role, songs, personalNotes, onUpdatePersonal, isSaving, songPersonalNotes, onUpdateSongPersonal }) => {
+const PlayerBoard = ({ role, songs, personalNotes, onUpdatePersonal, isSaving, songPersonalNotes, onUpdateSongPersonal, onToggleLibrary }) => {
     const [notesCollapsed, setNotesCollapsed] = useState(false);
     const [showLyrics, setShowLyrics] = useState(false);
-
+    const [filterCategory, setFilterCategory] = useState('All');
+    const [sortBy, setSortBy] = useState('original');
+ 
     const activeSong = songs?.find(s => s.isActive);
+ 
+    // First, map songs to include their original index so their # display label is correct
+    const songsWithOriginalIndex = (songs || []).map((song, index) => ({
+        ...song,
+        originalIndex: index
+    }));
+ 
+    // Apply category filter
+    let processedSongs = songsWithOriginalIndex;
+    if (filterCategory !== 'All') {
+        processedSongs = processedSongs.filter(s => s.category === filterCategory);
+    }
+ 
+    // Apply sorting
+    if (sortBy === 'category') {
+        const categoryOrder = {
+            'Slow Acoustic': 1,
+            'Mid Level': 2,
+            'Fast Pace': 3
+        };
+        processedSongs = [...processedSongs].sort((a, b) => {
+            const catA = a.category || 'Slow Acoustic';
+            const catB = b.category || 'Slow Acoustic';
+            if (categoryOrder[catA] !== categoryOrder[catB]) {
+                return categoryOrder[catA] - categoryOrder[catB];
+            }
+            return a.originalIndex - b.originalIndex; // Stable sort
+        });
+    } else if (sortBy === 'alphabetical') {
+        processedSongs = [...processedSongs].sort((a, b) => a.title.localeCompare(b.title));
+    }
 
     return (
         <>
             <div className={`flex flex-col h-full gap-4 transition-all duration-300`}>
                 {/* Top Section: Setlist View - Takes remaining space */}
                 <div className={`bg-surface border border-glass-border rounded-xl flex flex-col overflow-hidden relative transition-all duration-300 ${notesCollapsed ? 'flex-1' : 'h-[75%] sm:h-[70%]'}`}>
-                    <div className="p-3 border-b border-slate-800 bg-surface flex justify-between items-center z-10">
+                    <div className="p-3 border-b border-slate-800 bg-surface flex flex-col md:flex-row gap-3 justify-between items-start md:items-center z-10 shrink-0">
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-xl font-bold text-primary">Setlist</h2>
+                        </div>
+                        <div className="flex flex-wrap gap-2 w-full md:w-auto items-center">
+                            {/* Filter tabs */}
+                            <div className="flex rounded-lg bg-slate-900/80 p-0.5 border border-slate-800 text-[11px] sm:text-xs">
+                                {['All', 'Slow Acoustic', 'Mid Level', 'Fast Pace'].map((cat) => (
+                                    <button
+                                        key={cat}
+                                        onClick={() => setFilterCategory(cat)}
+                                        className={`px-2 py-1 rounded transition-all font-semibold ${
+                                            filterCategory === cat
+                                                ? 'bg-primary text-black'
+                                                : 'text-slate-400 hover:text-white'
+                                        }`}
+                                    >
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
+ 
+                            {/* Sort Selector */}
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                className="bg-slate-900 border border-slate-800 rounded px-2 py-1 text-[11px] sm:text-xs font-semibold text-slate-300 focus:border-primary focus:outline-none cursor-pointer"
+                            >
+                                <option value="original">Original Order</option>
+                                <option value="category">Group by Category</option>
+                                <option value="alphabetical">A-Z</option>
+                            </select>
+                        </div>
                     </div>
 
                     {/* General Info Overlay/Panel */}
@@ -26,13 +91,13 @@ const PlayerBoard = ({ role, songs, personalNotes, onUpdatePersonal, isSaving, s
                     )} */}
 
                     <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-black/50 custom-scrollbar">
-                        {songs && songs.map((song, index) => {
+                        {processedSongs.map((song) => {
                             const isActive = song.isActive;
                             return (
                                 <AccordionSongItem
                                     key={song.id}
                                     song={song}
-                                    index={index}
+                                    index={song.originalIndex}
                                     isActive={isActive}
                                     myNote={songPersonalNotes?.[song.id] || ''}
                                     onUpdateMyNote={(text) => onUpdateSongPersonal && onUpdateSongPersonal(song.id, text)}
@@ -40,15 +105,27 @@ const PlayerBoard = ({ role, songs, personalNotes, onUpdatePersonal, isSaving, s
                                 />
                             );
                         })}
-                        {(!songs || songs.length === 0) && <div className="p-8 text-center text-slate-600">No songs yet.</div>}
+                        {processedSongs.length === 0 && <div className="p-8 text-center text-slate-600">No songs match criteria.</div>}
                     </div>
                 </div>
 
-                {/* Metronome */}
-                <Metronome
-                    suggestedBPM={songs.find(s => s.isActive)?.tempo ? parseInt(songs.find(s => s.isActive).tempo) : 120}
-                    suggestedTimeSig={songs.find(s => s.isActive)?.timeSig || '4/4'}
-                />
+                {/* Metronome & Library Bar */}
+                <div className="flex flex-col lg:flex-row gap-3">
+                    <div className="flex-1">
+                        <Metronome
+                            suggestedBPM={songs.find(s => s.isActive)?.tempo ? parseInt(songs.find(s => s.isActive).tempo) : 120}
+                            suggestedTimeSig={songs.find(s => s.isActive)?.timeSig || '4/4'}
+                        />
+                    </div>
+                    <button
+                        onClick={onToggleLibrary}
+                        className="lg:w-48 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-lg p-3 md:p-4 flex items-center justify-center gap-2 text-white font-bold transition-all hover:border-slate-500 cursor-pointer shadow-md"
+                        title="Open Song Library"
+                    >
+                        <BookOpen className="w-5 h-5 text-primary" />
+                        <span>Song Library</span>
+                    </button>
+                </div>
 
                 {/* Bottom Section: Personal Notes - Fixed height or Collapsed */}
                 <div className={`bg-surface border border-glass-border rounded-xl flex flex-col transition-all duration-300 ${notesCollapsed ? 'h-[50px]' : 'h-[25%] sm:h-[30%] min-h-[150px]'}`}>
@@ -158,6 +235,17 @@ const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote, role
                 <div className="flex items-center gap-3 shrink-0">
                     {/* Metadata Badges - Always visible but styled better */}
                     <div className="flex items-center gap-2">
+                        {song.category && (
+                            <div className={`rounded md:rounded-lg border px-2 py-1 text-xs font-bold whitespace-nowrap ${
+                                song.category === 'Slow Acoustic'
+                                    ? 'border-blue-500/30 text-blue-400 bg-blue-500/10'
+                                    : song.category === 'Mid Level'
+                                    ? 'border-yellow-500/30 text-yellow-400 bg-yellow-500/10'
+                                    : 'border-red-500/30 text-red-400 bg-red-500/10'
+                            }`}>
+                                {song.category}
+                            </div>
+                        )}
                         {song.key && (
                             <div className={`rounded md:rounded-lg border px-2 py-1 text-sm sm:text-lg font-bold font-mono ${isActive ? 'border-primary/50 text-white bg-primary/20' : 'border-slate-700 text-slate-400 bg-black/40'}`}>
                                 {song.key}

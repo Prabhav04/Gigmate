@@ -3,6 +3,7 @@ import { useParams, useLocation } from 'react-router-dom';
 import RoleSelection from '../components/RoleSelection';
 import MasterBoard from '../components/MasterBoard';
 import PlayerBoard from '../components/PlayerBoard';
+import SongLibrary from '../components/SongLibrary';
 import { useSession } from '../hooks/useSession';
 import { Share2, ArrowLeft, Maximize } from 'lucide-react';
 import PerformanceMode from '../components/PerformanceMode';
@@ -15,11 +16,13 @@ const SessionSpace = () => {
 
     const [role, setRole] = useState(null);
     const [isPerformanceMode, setIsPerformanceMode] = useState(false);
+    const [showLibrary, setShowLibrary] = useState(false);
     const { stageMode, toggleStageMode } = useStageMode();
 
     const {
         masterNotes,
         songs,
+        library,
         personalNotes,
         updateMasterNotes,
         addSong,
@@ -36,7 +39,11 @@ const SessionSpace = () => {
         isConnected,
         error,
         isSaving,
-        importSongs
+        importSongs,
+        addLibrarySong,
+        updateLibrarySong,
+        deleteLibrarySong,
+        addSongToSetlist
     } = useSession(sessionId, role, sessionName);
 
     const copyInvite = () => {
@@ -129,6 +136,7 @@ const SessionSpace = () => {
                         onToggleActive={toggleSongActive}
                         isSaving={isSaving}
                         onImportSongs={importSongs}
+                        onToggleLibrary={() => setShowLibrary(!showLibrary)}
                     />
                 ) : (
                     <PlayerBoard
@@ -140,6 +148,7 @@ const SessionSpace = () => {
                         isSaving={isSaving}
                         songPersonalNotes={songPersonalNotes}
                         onUpdateSongPersonal={updateSongPersonalNote}
+                        onToggleLibrary={() => setShowLibrary(!showLibrary)}
                     />
                 )}
             </main>
@@ -158,6 +167,19 @@ const SessionSpace = () => {
                     onDismissBroadcast={dismissBroadcast}
                 />
             )}
+
+            {/* Song Library Drawer */}
+            <SongLibrary
+                isOpen={showLibrary}
+                onClose={() => setShowLibrary(false)}
+                role={role}
+                library={library}
+                songs={songs}
+                onAddLibrarySong={addLibrarySong}
+                onUpdateLibrarySong={updateLibrarySong}
+                onDeleteLibrarySong={deleteLibrarySong}
+                onAddSongToSetlist={addSongToSetlist}
+            />
         </div>
     );
 };
