@@ -21,11 +21,11 @@ const BROADCAST_ICONS = {
 
 // Radial menu item definitions
 const SHOW_MENU_ITEMS = [
-    { icon: 'mic', label: 'Crowd Sing!', text: 'Everybody Sing!', category: 'audience' },
-    { icon: 'repeat', label: 'One More Time!', text: 'One More Time!', category: 'audience' },
-    { icon: 'zap', label: 'Hype Check', text: "Let's Goooo!", category: 'audience' },
-    { icon: 'megaphone', label: 'Follow Us!', text: 'Follow us on Instagram!', category: 'promotion' },
-    { icon: 'camera', label: 'Tag Us!', text: 'Tag us in your stories!', category: 'promotion' },
+    { icon: 'mic', label: 'Crowd Singalong!', text: 'make Everybody Sing with us!', category: 'audience' },
+    { icon: 'repeat', label: 'loop the portion', text: 'sing this One More Time!', category: 'audience' },
+    { icon: 'zap', label: 'Hype up', text: "Hype the audience", category: 'audience' },
+    { icon: 'megaphone', label: 'Media Promotion', text: 'Do Tag us on instagram, FreefolksBand, follow us too!', category: 'promotion' },
+    { icon: 'camera', label: 'Introduce', text: 'We are the FreeFolks, a band dedicated to create memorable experiences through music and connections.', category: 'promotion' },
 ];
 
 // --- Radial Menu Component (Keyboard only) ---
@@ -62,9 +62,9 @@ const RadialShowMenu = ({ onSendBroadcast }) => {
                         {item.label}
                     </span>
                     {/* Icon circle */}
-                    <span className="w-11 h-11 flex items-center justify-center rounded-full bg-surface border-2 border-primary/50 shadow-lg shadow-primary/20 hover:scale-110 hover:border-primary transition-transform cursor-pointer shrink-0">
+                    {/* <span className="w-11 h-11 flex items-center justify-center rounded-full bg-surface border-2 border-primary/50 shadow-lg shadow-primary/20 hover:scale-110 hover:border-primary transition-transform cursor-pointer shrink-0">
                         {IconComponent(item.icon, { size: 20, className: 'text-primary' })}
-                    </span>
+                    </span> */}
                 </button>
             ))}
 

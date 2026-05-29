@@ -219,7 +219,7 @@ const CompactSortView = ({ songs, onReorderSongs }) => {
     return (
         <div
             ref={containerRef}
-            className="flex-1 overflow-y-auto pr-2 custom-scrollbar relative select-none"
+            className="flex-1 overflow-y-auto pr-3 custom-scrollbar-large relative select-none"
             onPointerMove={handleContainerPointerMove}
             onPointerUp={handleContainerPointerUp}
             onPointerCancel={handleContainerPointerUp}
@@ -230,7 +230,7 @@ const CompactSortView = ({ songs, onReorderSongs }) => {
                         key={song.id}
                         data-sort-item
                         onPointerDown={(e) => handlePointerDown(e, song.id)}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors duration-100 cursor-grab active:cursor-grabbing ${dragId === song.id ? 'opacity-30 bg-black border-slate-700' : 'bg-black border-slate-800 hover:border-slate-600'}`}
+                        className={`flex items-center gap-1 px-2 py-2 rounded-lg border transition-colors duration-100 cursor-grab active:cursor-grabbing ${dragId === song.id ? 'opacity-30 bg-black border-slate-700' : 'bg-black border-slate-800 hover:border-slate-600'}`}
                         style={{ touchAction: 'none' }}
                     >
                         <span className="text-slate-500 font-mono text-sm font-bold shrink-0 w-6 text-right">
@@ -265,7 +265,7 @@ const CompactSortView = ({ songs, onReorderSongs }) => {
                 const dragged = orderedSongs.find(s => s.id === dragId);
                 return (
                     <div
-                        className="absolute left-0 right-2 z-50 pointer-events-none"
+                        className="absolute left-0 right-5 z-50 pointer-events-none"
                         style={{ top: ghostY, height: ghostHeight }}
                     >
                         <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg border bg-slate-800 border-primary shadow-[0_0_20px_rgba(167,139,250,0.4)] h-full">
@@ -406,7 +406,7 @@ const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSo
             </div>
 
             {/* Setlist Section */}
-            <div className="flex-1 bg-slate-900 border border-glass-border rounded-xl p-4 flex flex-col overflow-hidden relative">
+            <div className="flex-1 bg-slate-900 border border-glass-border rounded-xl p-2 flex flex-col overflow-hidden relative">
 
                 {/* Header */}
                 <div className="flex flex-col md:flex-row gap-3 justify-between items-start md:items-center mb-4">

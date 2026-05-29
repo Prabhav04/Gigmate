@@ -46,7 +46,7 @@ const PlayerBoard = ({ role, songs, personalNotes, onUpdatePersonal, isSaving, s
         <>
             <div className={`flex flex-col h-full gap-4 transition-all duration-300`}>
                 {/* Top Section: Setlist View - Takes remaining space */}
-                <div className={`bg-surface border border-glass-border rounded-xl flex flex-col overflow-hidden relative transition-all duration-300 ${notesCollapsed ? 'flex-1' : 'h-[75%] sm:h-[70%]'}`}>
+                <div className="bg-surface border border-glass-border rounded-xl flex flex-col overflow-hidden relative flex-1">
                     <div className="p-3 border-b border-slate-800 bg-surface flex flex-col md:flex-row gap-3 justify-between items-start md:items-center z-10 shrink-0">
                         <div className="flex items-center gap-2">
                             <h2 className="text-xl font-bold text-primary">Setlist</h2>
@@ -110,25 +110,27 @@ const PlayerBoard = ({ role, songs, personalNotes, onUpdatePersonal, isSaving, s
                 </div>
 
                 {/* Metronome & Library Bar */}
-                <div className="flex flex-col lg:flex-row gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                     <div className="flex-1">
                         <Metronome
-                            suggestedBPM={songs.find(s => s.isActive)?.tempo ? parseInt(songs.find(s => s.isActive).tempo) : 120}
-                            suggestedTimeSig={songs.find(s => s.isActive)?.timeSig || '4/4'}
+                            compact={true}
+                            suggestedBPM={activeSong?.tempo ? parseInt(activeSong.tempo) : 120}
+                            suggestedTimeSig={activeSong?.timeSig || '4/4'}
                         />
                     </div>
                     <button
                         onClick={onToggleLibrary}
-                        className="lg:w-48 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-lg p-3 md:p-4 flex items-center justify-center gap-2 text-white font-bold transition-all hover:border-slate-500 cursor-pointer shadow-md"
+                        className="bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-lg h-10 px-3 md:px-4 flex items-center justify-center gap-2 text-white font-bold text-sm transition-all hover:border-slate-500 cursor-pointer shadow-md shrink-0"
                         title="Open Song Library"
                     >
-                        <BookOpen className="w-5 h-5 text-primary" />
-                        <span>Song Library</span>
+                        <BookOpen className="w-4 h-4 text-primary" />
+                        <span className="hidden sm:inline">Song Library</span>
+                        <span className="sm:hidden">Library</span>
                     </button>
                 </div>
 
                 {/* Bottom Section: Personal Notes - Fixed height or Collapsed */}
-                <div className={`bg-surface border border-glass-border rounded-xl flex flex-col transition-all duration-300 ${notesCollapsed ? 'h-[50px]' : 'h-[25%] sm:h-[30%] min-h-[150px]'}`}>
+                <div className={`bg-surface border border-glass-border rounded-xl flex flex-col shrink-0 transition-all duration-300 ${notesCollapsed ? 'h-[50px]' : 'h-32 sm:h-40'}`}>
                     <div className="flex justify-between items-center p-3 border-b border-slate-800/50">
                         <div className="flex items-center gap-2">
                             <h2 className="text-xs font-bold text-secondary uppercase tracking-widest">{role} Scratchpad</h2>
@@ -208,6 +210,7 @@ const renderWithTags = (text) => {
 // Extracted for cleaner state management per item
 const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote, role }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isLyricsExpanded, setIsLyricsExpanded] = useState(false);
 
     // Auto-expand if active (Leader control), otherwise rely on user click
     const showDetails = isActive || isExpanded;
@@ -301,15 +304,26 @@ const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote, role
                         </div>
 
                         {/* My Personal Song Note */}
-                        <div className="space-y-1">
-                            <h4 className="text-[10px] uppercase tracking-widest text-secondary font-bold">
-                                {role === 'singer' ? 'Lyrics' : 'My Notes'}
-                            </h4>
+                        <div className="space-y-1 flex flex-col">
+                            <div className="flex justify-between items-center">
+                                <h4 className="text-[10px] uppercase tracking-widest text-secondary font-bold">
+                                    {role === 'singer' ? 'Lyrics' : 'My Notes'}
+                                </h4>
+                                <button
+                                    onClick={() => setIsLyricsExpanded(!isLyricsExpanded)}
+                                    className="text-slate-500 hover:text-white transition-colors p-0.5"
+                                    title={isLyricsExpanded ? "Collapse View" : "Expand View"}
+                                >
+                                    {isLyricsExpanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                                </button>
+                            </div>
                             <textarea
                                 value={myNote}
                                 onChange={(e) => onUpdateMyNote(e.target.value)}
                                 placeholder={role === 'singer' ? 'Add lyrics for this song...' : 'Add private notes for this song...'}
-                                className="w-full bg-black/50 border border-slate-800 rounded p-2 text-secondary/90 focus:border-secondary focus:outline-none text-base resize-none h-[80px]"
+                                className={`w-full bg-black/50 border border-slate-800 rounded p-2 text-secondary/90 focus:border-secondary focus:outline-none text-base resize-none custom-scrollbar transition-all duration-300 ${
+                                    isLyricsExpanded ? 'h-[300px]' : 'h-[80px]'
+                                }`}
                             />
                         </div>
                     </div>

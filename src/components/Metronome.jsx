@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Activity } from 'lucide-react';
 
-const Metronome = ({ suggestedBPM = 120, suggestedTimeSig = '4/4' }) => {
+const Metronome = ({ suggestedBPM = 120, suggestedTimeSig = '4/4', compact = false }) => {
     const [bpm, setBpm] = useState(suggestedBPM);
     const [timeSig, setTimeSig] = useState(suggestedTimeSig);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -119,6 +119,83 @@ const Metronome = ({ suggestedBPM = 120, suggestedTimeSig = '4/4' }) => {
             setBeat(0);
         }
     }, [suggestedTimeSig, timeSig]);
+
+    if (compact) {
+        return (
+            <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-1.5 px-2 md:px-3 flex items-center justify-between gap-2 h-10 w-full">
+                {/* BPM & Time Sig controls side-by-side */}
+                <div className="flex items-center gap-2">
+                    {/* BPM */}
+                    <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-slate-500 uppercase font-bold hidden xs:inline">BPM</span>
+                        <input
+                            type="number"
+                            value={bpm}
+                            onChange={(e) => setBpm(Math.max(40, Math.min(240, parseInt(e.target.value) || 120)))}
+                            className="w-12 bg-black border border-slate-800 rounded px-1.5 py-0.5 text-center text-sm font-bold text-white focus:outline-none focus:border-primary"
+                            min="40"
+                            max="240"
+                        />
+                    </div>
+
+                    {/* Time Sig */}
+                    <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-slate-500 uppercase font-bold hidden xs:inline">Sig</span>
+                        <input
+                            type="text"
+                            value={timeSig}
+                            onChange={(e) => setTimeSig(e.target.value)}
+                            placeholder="4/4"
+                            className="w-12 bg-black border border-slate-800 rounded px-1.5 py-0.5 text-center text-xs font-bold text-white focus:outline-none focus:border-primary"
+                        />
+                    </div>
+
+                    {/* Beat Indicator */}
+                    <div className="flex gap-1 items-center ml-1">
+                        {Array.from({ length: Math.min(beatsPerMeasure, 8) }).map((_, i) => (
+                            <div
+                                key={i}
+                                className={`w-1.5 h-1.5 rounded-full transition-all ${isPlaying && beat === i
+                                        ? i === 0
+                                            ? 'bg-primary scale-125 shadow-lg shadow-primary/50'
+                                            : 'bg-secondary scale-125 shadow-lg shadow-secondary/50'
+                                        : 'bg-slate-700'
+                                    }`}
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                {/* Controls */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                        onClick={togglePlay}
+                        className={`p-1.5 rounded font-bold transition-all ${isPlaying
+                            ? 'bg-red-500 hover:bg-red-600 text-white'
+                            : 'bg-primary hover:bg-primary/80 text-black'
+                            }`}
+                        title={isPlaying ? 'Stop' : 'Play'}
+                    >
+                        {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+                    </button>
+
+                    <button
+                        onClick={handleTap}
+                        className="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded text-white transition-all hover:scale-105 flex items-center justify-center"
+                        title="Tap to set tempo"
+                    >
+                        <Activity size={14} />
+                    </button>
+                    
+                    {tapTimes.length > 0 && (
+                        <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
+                            ({tapTimes.length} tap{tapTimes.length > 1 ? 's' : ''})
+                        </span>
+                    )}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-3 md:p-4 flex flex-col md:flex-row items-center gap-3 md:gap-4">
