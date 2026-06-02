@@ -101,31 +101,40 @@ body {
 
 /* Large Custom Scrollbar (used in CompactSortView for easier reordering control) */
 .custom-scrollbar-large::-webkit-scrollbar {
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
 }
 
 .custom-scrollbar-large::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
 }
 
 .custom-scrollbar-large::-webkit-scrollbar-thumb {
-  background: rgba(16, 172, 175, 0.35); /* Slightly higher visibility */
-  border-radius: 6px;
+  background: rgba(16, 172, 175, 0.5); /* Higher visibility */
+  border-radius: 8px;
   border: 3px solid transparent;
   background-clip: padding-box;
 }
 
 .custom-scrollbar-large::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 172, 175, 0.7);
+  background: rgba(16, 172, 175, 0.85);
   background-clip: padding-box;
 }
 
 /* Firefox */
 .custom-scrollbar-large {
   scrollbar-width: auto;
-  scrollbar-color: rgba(16, 172, 175, 0.35) rgba(255, 246, 233, 0.03);
+  scrollbar-color: rgba(16, 172, 175, 0.5) rgba(255, 246, 233, 0.05);
+}
+
+/* Utility to hide native scrollbars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 
 @keyframes pulse-glow {

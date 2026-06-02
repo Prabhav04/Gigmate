@@ -130,6 +130,8 @@ const CompactSortView = ({ songs, onReorderSongs }) => {
     const [ghostY, setGhostY] = useState(0);
     const [ghostHeight, setGhostHeight] = useState(0);
     const containerRef = useRef(null);
+    const trackRef = useRef(null);
+    const thumbRef = useRef(null);
     const dragState = useRef(null); // { songId, offsetY }
     const scrollTimer = useRef(null);
 
@@ -154,7 +156,8 @@ const CompactSortView = ({ songs, onReorderSongs }) => {
 
     const handlePointerDown = useCallback((e, songId) => {
         e.preventDefault();
-        const item = e.currentTarget;
+        const item = e.currentTarget.closest('[data-sort-item]');
+        if (!item) return;
         const container = containerRef.current;
         const itemRect = item.getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
@@ -216,84 +219,210 @@ const CompactSortView = ({ songs, onReorderSongs }) => {
         dragState.current = null;
     }, [stopAutoScroll, onReorderSongs]);
 
-    return (
-        <div
-            ref={containerRef}
-            className="flex-1 overflow-y-auto pr-3 custom-scrollbar-large relative select-none"
-            onPointerMove={handleContainerPointerMove}
-            onPointerUp={handleContainerPointerUp}
-            onPointerCancel={handleContainerPointerUp}
-        >
-            <div className="space-y-1.5 relative">
-                {orderedSongs.map((song, index) => (
-                    <div
-                        key={song.id}
-                        data-sort-item
-                        onPointerDown={(e) => handlePointerDown(e, song.id)}
-                        className={`flex items-center gap-1 px-2 py-2 rounded-lg border transition-colors duration-100 cursor-grab active:cursor-grabbing ${dragId === song.id ? 'opacity-30 bg-black border-slate-700' : 'bg-black border-slate-800 hover:border-slate-600'}`}
-                        style={{ touchAction: 'none' }}
-                    >
-                        <span className="text-slate-500 font-mono text-sm font-bold shrink-0 w-6 text-right">
-                            #{index + 1}
-                        </span>
-                        <span className="flex-1 text-white text-base md:text-lg font-bold truncate pointer-events-none">
-                            {song.title || <span className="text-slate-600 italic">Untitled</span>}
-                        </span>
-                        {song.category && (
-                            <span className={`text-[10px] rounded px-1.5 py-0.5 shrink-0 pointer-events-none font-bold ${
-                                song.category === 'Slow Acoustic'
-                                    ? 'border border-blue-500/30 text-blue-400 bg-blue-500/10'
-                                    : song.category === 'Mid Level'
-                                    ? 'border border-yellow-500/30 text-yellow-400 bg-yellow-500/10'
-                                    : 'border border-red-500/30 text-red-400 bg-red-500/10'
-                            }`}>
-                                {song.category}
-                            </span>
-                        )}
-                        {song.key && (
-                            <span className="text-xs font-mono text-primary border border-primary/30 rounded px-1.5 py-0.5 shrink-0 pointer-events-none">
-                                {song.key}
-                            </span>
-                        )}
-                        <GripVertical size={20} className="text-slate-600 shrink-0 pointer-events-none" />
-                    </div>
-                ))}
-            </div>
+    // Custom Scrollbar Logic
+    const updateScrollbar = useCallback(() => {
+        const container = containerRef.current;
+        const thumb = thumbRef.current;
+        const track = trackRef.current;
+        if (!container || !thumb || !track) return;
 
-            {/* Ghost — floats under the cursor while dragging */}
-            {dragId !== null && (() => {
-                const dragged = orderedSongs.find(s => s.id === dragId);
-                return (
-                    <div
-                        className="absolute left-0 right-5 z-50 pointer-events-none"
-                        style={{ top: ghostY, height: ghostHeight }}
-                    >
-                        <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg border bg-slate-800 border-primary shadow-[0_0_20px_rgba(167,139,250,0.4)] h-full">
-                            <span className="text-primary font-mono text-sm font-bold shrink-0 w-6 text-right">✦</span>
-                            <span className="flex-1 text-white text-base md:text-lg font-bold truncate">
-                                {dragged?.title || 'Untitled'}
+        const clientHeight = container.clientHeight;
+        const scrollHeight = container.scrollHeight;
+        const scrollTop = container.scrollTop;
+
+        if (scrollHeight <= clientHeight) {
+            track.style.display = 'none';
+            return;
+        }
+        track.style.display = 'block';
+
+        const trackHeight = track.clientHeight;
+        const calculatedThumbHeight = Math.max(40, (clientHeight / scrollHeight) * trackHeight);
+        thumb.style.height = `${calculatedThumbHeight}px`;
+
+        const scrollableHeight = scrollHeight - clientHeight;
+        const scrollableTrackHeight = trackHeight - calculatedThumbHeight;
+        const thumbTop = (scrollTop / scrollableHeight) * scrollableTrackHeight;
+
+        thumb.style.transform = `translateY(${thumbTop}px)`;
+    }, []);
+
+    const handleThumbPointerDown = useCallback((e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const container = containerRef.current;
+        const thumb = thumbRef.current;
+        const track = trackRef.current;
+        if (!container || !thumb || !track) return;
+
+        const startY = e.clientY;
+        const startScrollTop = container.scrollTop;
+
+        const clientHeight = container.clientHeight;
+        const scrollHeight = container.scrollHeight;
+        const trackHeight = track.clientHeight;
+        const thumbHeight = thumb.clientHeight;
+
+        const scrollableHeight = scrollHeight - clientHeight;
+        const scrollableTrackHeight = trackHeight - thumbHeight;
+
+        if (scrollableTrackHeight <= 0) return;
+        const ratio = scrollableTrackHeight / scrollableHeight;
+
+        const handlePointerMove = (moveEvent) => {
+            const deltaY = moveEvent.clientY - startY;
+            container.scrollTop = startScrollTop + deltaY / ratio;
+        };
+
+        const handlePointerUp = () => {
+            document.removeEventListener('pointermove', handlePointerMove);
+            document.removeEventListener('pointerup', handlePointerUp);
+            document.removeEventListener('pointercancel', handlePointerUp);
+        };
+
+        document.addEventListener('pointermove', handlePointerMove);
+        document.addEventListener('pointerup', handlePointerUp);
+        document.addEventListener('pointercancel', handlePointerUp);
+    }, []);
+
+    const handleTrackPointerDown = useCallback((e) => {
+        if (e.target !== trackRef.current) return;
+        e.preventDefault();
+
+        const container = containerRef.current;
+        const track = trackRef.current;
+        const thumb = thumbRef.current;
+        if (!container || !track || !thumb) return;
+
+        const rect = track.getBoundingClientRect();
+        const clickY = e.clientY - rect.top;
+        const thumbHeight = thumb.clientHeight;
+        const targetThumbTop = clickY - thumbHeight / 2;
+
+        const trackHeight = track.clientHeight;
+        const scrollableTrackHeight = trackHeight - thumbHeight;
+        const scrollableHeight = container.scrollHeight - container.clientHeight;
+
+        const ratio = targetThumbTop / scrollableTrackHeight;
+        container.scrollTop = Math.max(0, Math.min(scrollableHeight, ratio * scrollableHeight));
+
+        handleThumbPointerDown(e);
+    }, [handleThumbPointerDown]);
+
+    React.useEffect(() => {
+        updateScrollbar();
+        const timer = setTimeout(updateScrollbar, 100);
+        window.addEventListener('resize', updateScrollbar);
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('resize', updateScrollbar);
+        };
+    }, [orderedSongs, updateScrollbar]);
+
+    return (
+        <div className="flex-1 relative flex overflow-hidden w-full h-full">
+            {/* The scrollable area */}
+            <div
+                ref={containerRef}
+                onScroll={updateScrollbar}
+                className="flex-1 overflow-y-auto pr-8 no-scrollbar relative"
+                onPointerMove={handleContainerPointerMove}
+                onPointerUp={handleContainerPointerUp}
+                onPointerCancel={handleContainerPointerUp}
+            >
+                <div className="space-y-1.5 relative">
+                    {orderedSongs.map((song, index) => (
+                        <div
+                            key={song.id}
+                            data-sort-item
+                            className={`flex items-center gap-1 px-2 py-2 rounded-lg border transition-colors duration-100 select-none ${dragId === song.id ? 'opacity-30 bg-black border-slate-700' : 'bg-black border-slate-800 hover:border-slate-600'}`}
+                        >
+                            <span className="text-slate-500 font-mono text-sm font-bold shrink-0 w-6 text-right">
+                                #{index + 1}
                             </span>
-                            {dragged?.category && (
-                                <span className={`text-[10px] rounded px-1.5 py-0.5 shrink-0 font-bold ${
-                                    dragged.category === 'Slow Acoustic'
+                            <span className="flex-1 text-white text-base md:text-lg font-bold truncate pointer-events-none">
+                                {song.title || <span className="text-slate-600 italic">Untitled</span>}
+                            </span>
+                            {song.category && (
+                                <span className={`text-[10px] rounded px-1.5 py-0.5 shrink-0 pointer-events-none font-bold ${
+                                    song.category === 'Slow Acoustic'
                                         ? 'border border-blue-500/30 text-blue-400 bg-blue-500/10'
-                                        : dragged.category === 'Mid Level'
+                                        : song.category === 'Mid Level'
                                         ? 'border border-yellow-500/30 text-yellow-400 bg-yellow-500/10'
                                         : 'border border-red-500/30 text-red-400 bg-red-500/10'
                                 }`}>
-                                    {dragged.category}
+                                    {song.category}
                                 </span>
                             )}
-                            {dragged?.key && (
-                                <span className="text-xs font-mono text-primary border border-primary/30 rounded px-1.5 py-0.5 shrink-0">
-                                    {dragged.key}
+                            {song.key && (
+                                <span className="text-xs font-mono text-primary border border-primary/30 rounded px-1.5 py-0.5 shrink-0 pointer-events-none">
+                                    {song.key}
                                 </span>
                             )}
-                            <GripVertical size={20} className="text-primary shrink-0" />
+                            <div
+                                onPointerDown={(e) => handlePointerDown(e, song.id)}
+                                className="p-3 -mr-2 text-slate-500 hover:text-primary active:text-primary-hover cursor-grab active:cursor-grabbing touch-none shrink-0 flex items-center justify-center"
+                                title="Drag to reorder"
+                                style={{ touchAction: 'none', width: '44px', height: '44px' }}
+                            >
+                                <GripVertical size={20} className="shrink-0 pointer-events-none" />
+                            </div>
                         </div>
-                    </div>
-                );
-            })()}
+                    ))}
+                </div>
+
+                {/* Ghost — floats under the cursor while dragging */}
+                {dragId !== null && (() => {
+                    const dragged = orderedSongs.find(s => s.id === dragId);
+                    return (
+                        <div
+                            className="absolute left-0 right-8 z-50 pointer-events-none"
+                            style={{ top: ghostY, height: ghostHeight }}
+                        >
+                            <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg border bg-slate-800 border-primary shadow-[0_0_20px_rgba(167,139,250,0.4)] h-full">
+                                <span className="text-primary font-mono text-sm font-bold shrink-0 w-6 text-right">✦</span>
+                                <span className="flex-1 text-white text-base md:text-lg font-bold truncate">
+                                    {dragged?.title || 'Untitled'}
+                                </span>
+                                {dragged?.category && (
+                                    <span className={`text-[10px] rounded px-1.5 py-0.5 shrink-0 font-bold ${
+                                        dragged.category === 'Slow Acoustic'
+                                            ? 'border border-blue-500/30 text-blue-400 bg-blue-500/10'
+                                            : dragged.category === 'Mid Level'
+                                            ? 'border border-yellow-500/30 text-yellow-400 bg-yellow-500/10'
+                                            : 'border border-red-500/30 text-red-400 bg-red-500/10'
+                                    }`}>
+                                        {dragged.category}
+                                    </span>
+                                )}
+                                {dragged?.key && (
+                                    <span className="text-xs font-mono text-primary border border-primary/30 rounded px-1.5 py-0.5 shrink-0">
+                                        {dragged.key}
+                                    </span>
+                                )}
+                                <GripVertical size={20} className="text-primary shrink-0" />
+                            </div>
+                        </div>
+                    );
+                })()}
+            </div>
+
+            {/* Custom Touch-Draggable Scrollbar Track */}
+            <div
+                ref={trackRef}
+                onPointerDown={handleTrackPointerDown}
+                className="absolute right-0 top-0 bottom-0 w-6 bg-white/5 rounded-full cursor-pointer transition-colors hover:bg-white/10 z-30"
+                style={{ touchAction: 'none' }}
+            >
+                {/* Custom Scrollbar Thumb */}
+                <div
+                    ref={thumbRef}
+                    onPointerDown={handleThumbPointerDown}
+                    className="absolute left-0 right-0 bg-primary/50 hover:bg-primary/80 active:bg-primary rounded-full transition-colors cursor-grab active:cursor-grabbing"
+                    style={{ minHeight: '40px', width: '100%', touchAction: 'none' }}
+                />
+            </div>
         </div>
     );
 };
