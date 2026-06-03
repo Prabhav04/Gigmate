@@ -1,13 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronUp, Music, Minimize2, Maximize2, Mic, Eye, BookOpen } from 'lucide-react';
 import Metronome from './Metronome';
 import LyricsView from './LyricsView';
+import { DebouncedTextarea } from './DebouncedInputs';
 
 const PlayerBoard = ({ role, songs, personalNotes, onUpdatePersonal, isSaving, songPersonalNotes, onUpdateSongPersonal, onToggleLibrary }) => {
     const [notesCollapsed, setNotesCollapsed] = useState(false);
     const [showLyrics, setShowLyrics] = useState(false);
     const [filterCategory, setFilterCategory] = useState('All');
     const [sortBy, setSortBy] = useState('original');
+    const listRef = useRef(null);
+    const [newlyAddedSongId, setNewlyAddedSongId] = useState(null);
+    const prevSongsLength = useRef(songs?.length || 0);
+    const isFirstLoad = useRef(true);
+
+    const scrollToBottom = () => {
+        setTimeout(() => {
+            if (listRef.current) {
+                listRef.current.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' });
+            }
+        }, 150);
+    };
+
+    useEffect(() => {
+        const currentLength = songs?.length || 0;
+        if (isFirstLoad.current) {
+            if (currentLength > 0) {
+                isFirstLoad.current = false;
+                prevSongsLength.current = currentLength;
+            }
+            return;
+        }
+
+        if (currentLength > prevSongsLength.current) {
+            const sorted = [...songs].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+            const newSong = sorted[sorted.length - 1];
+            if (newSong) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
+                setNewlyAddedSongId(newSong.id);
+                const isVisible = filterCategory === 'All' || newSong.category === filterCategory;
+                if (isVisible) {
+                    scrollToBottom();
+                }
+                const timer = setTimeout(() => {
+                    setNewlyAddedSongId(null);
+                }, 3000);
+                return () => clearTimeout(timer);
+            }
+        }
+        prevSongsLength.current = currentLength;
+    }, [songs, filterCategory]);
  
     const activeSong = songs?.find(s => s.isActive);
  
@@ -90,7 +132,7 @@ const PlayerBoard = ({ role, songs, personalNotes, onUpdatePersonal, isSaving, s
                         </div>
                     )} */}
 
-                    <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-black/50 custom-scrollbar">
+                    <div ref={listRef} className="flex-1 overflow-y-auto p-2 space-y-2 bg-black/50 custom-scrollbar">
                         {processedSongs.map((song) => {
                             const isActive = song.isActive;
                             return (
@@ -102,6 +144,7 @@ const PlayerBoard = ({ role, songs, personalNotes, onUpdatePersonal, isSaving, s
                                     myNote={songPersonalNotes?.[song.id] || ''}
                                     onUpdateMyNote={(text) => onUpdateSongPersonal && onUpdateSongPersonal(song.id, text)}
                                     role={role}
+                                    isNewlyAdded={newlyAddedSongId === song.id}
                                 />
                             );
                         })}
@@ -116,6 +159,7 @@ const PlayerBoard = ({ role, songs, personalNotes, onUpdatePersonal, isSaving, s
                             compact={true}
                             suggestedBPM={activeSong?.tempo ? parseInt(activeSong.tempo) : 120}
                             suggestedTimeSig={activeSong?.timeSig || '4/4'}
+                            hasActiveSong={!!activeSong}
                         />
                     </div>
                     <button
@@ -147,9 +191,9 @@ const PlayerBoard = ({ role, songs, personalNotes, onUpdatePersonal, isSaving, s
                     </div>
 
                     {!notesCollapsed && (
-                        <textarea
+                        <DebouncedTextarea
                             value={personalNotes}
-                            onChange={(e) => onUpdatePersonal(e.target.value)}
+                            onChange={(value) => onUpdatePersonal(value)}
                             placeholder={`Start typing to add global notes visible only to you...`}
                             className="flex-1 w-full bg-black border-none p-4 text-lg text-white focus:outline-none focus:ring-1 focus:ring-secondary/50 transition-colors resize-none font-sans font-medium leading-relaxed tracking-wide placeholder:text-slate-800"
                         />
@@ -207,20 +251,42 @@ const renderWithTags = (text) => {
     });
 };
 
+const parseSingerNote = (rawNote) => {
+    if (!rawNote) return { lyrics: '', intro: '' };
+    if (typeof rawNote === 'string' && rawNote.trim().startsWith('{') && rawNote.trim().endsWith('}')) {
+        try {
+            const parsed = JSON.parse(rawNote);
+            if (parsed && (parsed.lyrics !== undefined || parsed.intro !== undefined)) {
+                return {
+                    lyrics: parsed.lyrics || '',
+                    intro: parsed.intro || ''
+                };
+            }
+        } catch {
+            // ignore and treat as plain string
+        }
+    }
+    return { lyrics: rawNote, intro: '' };
+};
+
 // Extracted for cleaner state management per item
-const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote, role }) => {
+const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote, role, isNewlyAdded = false }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isLyricsExpanded, setIsLyricsExpanded] = useState(false);
 
     // Auto-expand if active (Leader control), otherwise rely on user click
     const showDetails = isActive || isExpanded;
+    const singerNote = role === 'singer' ? parseSingerNote(myNote) : null;
 
     return (
         <div
-            className={`rounded-xl border transition-all ${isActive
-                ? 'bg-primary/10 border-primary shadow-[0_0_20px_rgba(167,139,250,0.15)] my-4 scale-[1.01]'
-                : 'bg-surface/30 border-slate-800 hover:bg-surface/50 hover:border-slate-700'
-                }`}
+            className={`rounded-xl border transition-all ${
+                isNewlyAdded
+                    ? 'animate-new-item-flash border-primary'
+                    : isActive
+                    ? 'bg-primary/10 border-primary shadow-[0_0_20px_rgba(167,139,250,0.15)] my-4 scale-[1.01]'
+                    : 'bg-surface/30 border-slate-800 hover:bg-surface/50 hover:border-slate-700'
+            }`}
         >
             <div
                 onClick={() => setIsExpanded(!isExpanded)}
@@ -305,26 +371,81 @@ const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote, role
 
                         {/* My Personal Song Note */}
                         <div className="space-y-1 flex flex-col">
-                            <div className="flex justify-between items-center">
-                                <h4 className="text-[10px] uppercase tracking-widest text-secondary font-bold">
-                                    {role === 'singer' ? 'Lyrics' : 'My Notes'}
-                                </h4>
-                                <button
-                                    onClick={() => setIsLyricsExpanded(!isLyricsExpanded)}
-                                    className="text-slate-500 hover:text-white transition-colors p-0.5"
-                                    title={isLyricsExpanded ? "Collapse View" : "Expand View"}
-                                >
-                                    {isLyricsExpanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-                                </button>
-                            </div>
-                            <textarea
-                                value={myNote}
-                                onChange={(e) => onUpdateMyNote(e.target.value)}
-                                placeholder={role === 'singer' ? 'Add lyrics for this song...' : 'Add private notes for this song...'}
-                                className={`w-full bg-black/50 border border-slate-800 rounded p-2 text-secondary/90 focus:border-secondary focus:outline-none text-base resize-none custom-scrollbar transition-all duration-300 ${
-                                    isLyricsExpanded ? 'h-[300px]' : 'h-[80px]'
-                                }`}
-                            />
+                            {role === 'singer' ? (
+                                <>
+                                    {/* Spoken Intro Area */}
+                                    <div className="space-y-1 mb-2">
+                                        <h4 className="text-[10px] uppercase tracking-widest text-primary font-bold">
+                                            Spoken Intro (Optional)
+                                        </h4>
+                                        <DebouncedTextarea
+                                            value={singerNote.intro}
+                                            onChange={(value) => {
+                                                const updated = JSON.stringify({
+                                                    ...singerNote,
+                                                    intro: value
+                                                });
+                                                onUpdateMyNote(updated);
+                                            }}
+                                            placeholder="Write an intro to speak before the song starts..."
+                                            className="w-full bg-black/50 border border-slate-800 rounded p-2 text-primary/90 focus:border-primary focus:outline-none text-sm resize-none custom-scrollbar h-[60px]"
+                                        />
+                                    </div>
+
+                                    {/* Lyrics Area */}
+                                    <div className="space-y-1 flex flex-col flex-grow">
+                                        <div className="flex justify-between items-center">
+                                            <h4 className="text-[10px] uppercase tracking-widest text-secondary font-bold">
+                                                Lyrics
+                                            </h4>
+                                            <button
+                                                onClick={() => setIsLyricsExpanded(!isLyricsExpanded)}
+                                                className="text-slate-500 hover:text-white transition-colors p-0.5"
+                                                title={isLyricsExpanded ? "Collapse View" : "Expand View"}
+                                            >
+                                                {isLyricsExpanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                                            </button>
+                                        </div>
+                                        <DebouncedTextarea
+                                            value={singerNote.lyrics}
+                                            onChange={(value) => {
+                                                const updated = JSON.stringify({
+                                                    ...singerNote,
+                                                    lyrics: value
+                                                });
+                                                onUpdateMyNote(updated);
+                                            }}
+                                            placeholder="Add lyrics for this song..."
+                                            className={`w-full bg-black/50 border border-slate-800 rounded p-2 text-secondary/90 focus:border-secondary focus:outline-none text-base resize-none custom-scrollbar transition-all duration-300 ${
+                                                isLyricsExpanded ? 'h-[200px]' : 'h-[80px]'
+                                            }`}
+                                        />
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex justify-between items-center">
+                                        <h4 className="text-[10px] uppercase tracking-widest text-secondary font-bold">
+                                            My Notes
+                                        </h4>
+                                        <button
+                                            onClick={() => setIsLyricsExpanded(!isLyricsExpanded)}
+                                            className="text-slate-500 hover:text-white transition-colors p-0.5"
+                                            title={isLyricsExpanded ? "Collapse View" : "Expand View"}
+                                        >
+                                            {isLyricsExpanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                                        </button>
+                                    </div>
+                                    <DebouncedTextarea
+                                        value={myNote}
+                                        onChange={(value) => onUpdateMyNote(value)}
+                                        placeholder="Add private notes for this song..."
+                                        className={`w-full bg-black/50 border border-slate-800 rounded p-2 text-secondary/90 focus:border-secondary focus:outline-none text-base resize-none custom-scrollbar transition-all duration-300 ${
+                                            isLyricsExpanded ? 'h-[300px]' : 'h-[80px]'
+                                        }`}
+                                    />
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

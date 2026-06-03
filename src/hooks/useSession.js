@@ -1,6 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { db } from '../lib/firebase';
-import { doc, onSnapshot, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { 
+    doc, 
+    onSnapshot, 
+    setDoc, 
+    getDoc, 
+    updateDoc, 
+    deleteDoc, 
+    deleteField, 
+    collection, 
+    query, 
+    orderBy, 
+    limit, 
+    startAfter, 
+    startAt, 
+    endAt, 
+    getDocs, 
+    writeBatch 
+} from 'firebase/firestore';
 
 import { STUDIOS } from '../constants/studios';
 
@@ -29,39 +46,121 @@ export const useSession = (sessionId, role, sessionName) => {
   const [personalNotes, setPersonalNotes] = useState("");
   const [songPersonalNotes, setSongPersonalNotes] = useState({}); // Map of songId -> note
   const [songs, setSongs] = useState([]);
-  const [library, setLibrary] = useState([]); // Array of all songs known
+  const [library, setLibrary] = useState([]); // Array of library songs loaded
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [hasMoreLibrary, setHasMoreLibrary] = useState(true);
+  const hasMoreLibraryRef = useRef(true);
+  const lastVisibleRef = useRef(null);
+  const libraryLoadingRef = useRef(false);
+  
   const [broadcastMessage, setBroadcastMessage] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Initialize Session
+  // Initialize Session, Migrate legacy fields, and Subscribe
   useEffect(() => {
     if (!sessionId) return;
     
-    // Check if session exists, if not create it
-    const initSession = async () => {
+    let unsubSongs = () => {};
+    let unsubSession = () => {};
+
+    const initAndSubscribe = async () => {
         try {
             const docRef = doc(db, 'sessions', sessionId);
             const docSnap = await getDoc(docRef);
             
-            if (!docSnap.exists()) {
-                // Check if this is a known studio with a default preset
+            // 1. Auto-migration check
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data.songs !== undefined || data.library !== undefined) {
+                    console.log("Migrating legacy session data to subcollections...");
+                    const batch = writeBatch(db);
+                    
+                    if (data.songs && Array.isArray(data.songs)) {
+                        data.songs.forEach((song, idx) => {
+                            const songRef = doc(db, 'sessions', sessionId, 'songs', song.id);
+                            batch.set(songRef, {
+                                ...song,
+                                order: idx,
+                                title_lowercase: (song.title || '').toLowerCase()
+                            });
+                        });
+                    }
+                    
+                    if (data.library && Array.isArray(data.library)) {
+                        data.library.forEach((libSong) => {
+                            const libRef = doc(db, 'sessions', sessionId, 'library', libSong.id);
+                            batch.set(libRef, {
+                                ...libSong,
+                                title_lowercase: (libSong.title || '').toLowerCase()
+                            });
+                        });
+                    }
+                    
+                    // Delete legacy fields
+                    batch.update(docRef, {
+                        songs: deleteField(),
+                        library: deleteField()
+                    });
+                    
+                    await batch.commit();
+                    console.log("Migration complete!");
+                }
+
+                // Self-healing migration check for subcollections
+                const libQuery = collection(db, 'sessions', sessionId, 'library');
+                const libSnap = await getDocs(libQuery);
+                const libBatch = writeBatch(db);
+                let needsLibUpdate = false;
+                libSnap.forEach(d => {
+                    const dData = d.data();
+                    if (!dData.title_lowercase) {
+                        needsLibUpdate = true;
+                        libBatch.update(d.ref, {
+                            title_lowercase: (dData.title || '').toLowerCase()
+                        });
+                    }
+                });
+                if (needsLibUpdate) {
+                    await libBatch.commit();
+                    console.log("Migration: Added title_lowercase to legacy library docs.");
+                }
+
+                const songsQueryRaw = collection(db, 'sessions', sessionId, 'songs');
+                const songsSnap = await getDocs(songsQueryRaw);
+                const songsBatch = writeBatch(db);
+                let needsSongsUpdate = false;
+                songsSnap.forEach((d, idx) => {
+                    const dData = d.data();
+                    const updates = {};
+                    if (!dData.title_lowercase) {
+                        needsSongsUpdate = true;
+                        updates.title_lowercase = (dData.title || '').toLowerCase();
+                    }
+                    if (dData.order === undefined) {
+                        needsSongsUpdate = true;
+                        updates.order = idx;
+                    }
+                    if (Object.keys(updates).length > 0) {
+                        songsBatch.update(d.ref, updates);
+                    }
+                });
+                if (needsSongsUpdate) {
+                    await songsBatch.commit();
+                    console.log("Migration: Fixed order/title_lowercase in songs subcollection.");
+                }
+            } else {
+                // 2. Create new session with subcollections
                 const knownStudio = STUDIOS.find(s => s.id === sessionId);
                 const initialSongs = knownStudio ? knownStudio.defaultPreset : [];
                 
-                // Copy preset to ensure new IDs if needed, although presets usually have placeholder IDs.
-                // For a fresh session, we can keep preset IDs or regenerate them. 
-                // Let's regenerate to be safe against future conflicts if multiple imports happen, 
-                // but for init it doesn't matter much. Let's keep it simple.
-                // Actually, let's regenerate for consistency with import logic.
-                const hydratedSongs = initialSongs.map(s => ({
+                const hydratedSongs = initialSongs.map((s, idx) => ({
                     ...s, 
-                    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                    id: Date.now().toString() + '-' + idx + '-' + Math.random().toString(36).substr(2, 4),
                     category: s.category || 'Slow Acoustic'
                 }));
 
-                // Collect all preset songs from all studios/presets to form the initial full library
                 const allPresetSongs = getAllPresetSongs();
                 const mergedInitialSongs = [];
                 const seenInitialTitles = new Set();
@@ -97,131 +196,76 @@ export const useSession = (sessionId, role, sessionName) => {
                     masterNotes: knownStudio ? `Welcome to ${knownStudio.name}! session.` : "",
                     name: knownStudio ? knownStudio.name : (sessionName || 'Untitled Setlist'),
                     type: knownStudio ? 'studio' : 'setlist',
-                    songs: hydratedSongs,
-                    library: hydratedLibrary,
                     createdAt: new Date()
                 });
+
+                // Write subcollection documents using a batch
+                const batch = writeBatch(db);
+                hydratedSongs.forEach((song, idx) => {
+                    const songRef = doc(db, 'sessions', sessionId, 'songs', song.id);
+                    batch.set(songRef, {
+                        ...song,
+                        id: song.id,
+                        order: idx,
+                        title_lowercase: (song.title || '').toLowerCase()
+                    });
+                });
+
+                hydratedLibrary.forEach((libSong) => {
+                    const libRef = doc(db, 'sessions', sessionId, 'library', libSong.id);
+                    batch.set(libRef, {
+                        ...libSong,
+                        title_lowercase: (libSong.title || '').toLowerCase()
+                    });
+                });
+
+                await batch.commit();
             }
+
+            // 3. Subscribe to Session Metadata
+            unsubSession = onSnapshot(docRef, (docSnapshot) => {
+                setError(null);
+                if (docSnapshot.exists()) {
+                    const data = docSnapshot.data();
+                    setBroadcastMessage(data.broadcastMessage || null);
+                    setIsConnected(true);
+
+                    if (!docSnapshot.metadata.hasPendingWrites) {
+                        setMasterNotes(data.notes || data.masterNotes || "");
+                    }
+                } else {
+                    setIsConnected(false);
+                }
+            }, (error) => {
+                console.error("Session snapshot error:", error);
+                setIsConnected(false);
+                setError("Connection Failed: " + error.code);
+            });
+
+            // 4. Subscribe to Setlist Songs
+            const songsQuery = query(collection(db, 'sessions', sessionId, 'songs'), orderBy('order', 'asc'));
+            unsubSongs = onSnapshot(songsQuery, (snapshot) => {
+                const songsData = [];
+                snapshot.forEach((doc) => {
+                    songsData.push({ id: doc.id, ...doc.data() });
+                });
+                setSongs(songsData);
+            }, (error) => {
+                console.error("Songs snapshot error:", error);
+            });
+
         } catch (error) {
-            console.error("Error initializing session:", error);
+            console.error("Error in session init and subscription:", error);
             setError(error.message);
         }
     };
-    
-    initSession();
 
-    // Subscribe to Master Notes & Songs
-    const unsubSession = onSnapshot(doc(db, 'sessions', sessionId), (docSnapshot) => {
-       setError(null); 
-       if (docSnapshot.exists()) {
-         const data = docSnapshot.data();
-         
-         // Always sync broadcast for responsiveness
-         setBroadcastMessage(data.broadcastMessage || null);
-         setIsConnected(true);
+    initAndSubscribe();
 
-         // We only update master notes if there's no pending local write to avoid cursor jumping
-         if (!docSnapshot.metadata.hasPendingWrites) {
-             setMasterNotes(data.masterNotes || "");
-         }
-
-         const rawSongs = data.songs || [];
-         const migratedSongs = rawSongs.map(s => ({
-             ...s,
-             category: s.category || 'Slow Acoustic'
-         }));
-         setSongs(migratedSongs);
-
-         const rawLibrary = data.library;
-         let migratedLibrary = [];
-         if (rawLibrary) {
-             migratedLibrary = rawLibrary.map(s => ({
-                 ...s,
-                 category: s.category || 'Slow Acoustic'
-             }));
-         } else {
-             // Fallback to active setlist songs + all preset songs if library is completely missing/undefined in database (e.g. older sessions)
-             const fallbackSongs = [];
-             const seenTitles = new Set();
-             
-             // Add current session's active songs first
-             migratedSongs.forEach(song => {
-                 const titleKey = song.title.toLowerCase().trim();
-                 if (song.title && !seenTitles.has(titleKey)) {
-                     seenTitles.add(titleKey);
-                     fallbackSongs.push({
-                         id: 'lib-' + song.id,
-                         title: song.title,
-                         key: song.key || '',
-                         tempo: song.tempo || '',
-                         timeSig: song.timeSig || '',
-                         notes: song.notes || '',
-                         category: song.category || 'Slow Acoustic',
-                         cues: song.cues || []
-                     });
-                 }
-             });
-
-             // Add all other preset songs
-             const allPresetSongs = getAllPresetSongs();
-             allPresetSongs.forEach(song => {
-                 const titleKey = song.title.toLowerCase().trim();
-                 if (song.title && !seenTitles.has(titleKey)) {
-                     seenTitles.add(titleKey);
-                     fallbackSongs.push({
-                         id: 'lib-preset-' + Math.random().toString(36).substr(2, 9),
-                         title: song.title,
-                         key: song.key || '',
-                         tempo: song.tempo || '',
-                         timeSig: song.timeSig || '',
-                         notes: song.notes || '',
-                         category: song.category || 'Slow Acoustic',
-                         cues: song.cues || []
-                     });
-                 }
-             });
-             migratedLibrary = fallbackSongs;
-         }
-         setLibrary(migratedLibrary);
-
-         // Auto-add setlist songs & preset songs to library for Keyboardist (Leader)
-         if (role === 'keyboard' && !docSnapshot.metadata.hasPendingWrites) {
-             if (data.library === undefined) {
-                 // Write initial library to database
-                 updateDoc(doc(db, 'sessions', sessionId), { library: migratedLibrary }).catch(console.error);
-             } else {
-                 const libraryTitles = new Set(migratedLibrary.map(s => s.title.toLowerCase().trim()));
-                 
-                 // Get all preset songs plus current session songs
-                 const allRequiredSongs = [...migratedSongs, ...getAllPresetSongs()];
-                 const missingSongs = allRequiredSongs.filter(s => s.title && s.title.trim() && !libraryTitles.has(s.title.toLowerCase().trim()));
-                 
-                 if (missingSongs.length > 0) {
-                     const newLibSongs = missingSongs.map((s, idx) => ({
-                         id: 'lib-' + Date.now().toString() + '-' + idx,
-                         title: s.title,
-                         key: s.key || '',
-                         tempo: s.tempo || '',
-                         timeSig: s.timeSig || '',
-                         notes: s.notes || '',
-                         category: s.category || 'Slow Acoustic',
-                         cues: s.cues || []
-                     }));
-                     const updatedLibrary = [...migratedLibrary, ...newLibSongs];
-                     updateDoc(doc(db, 'sessions', sessionId), { library: updatedLibrary }).catch(console.error);
-                 }
-             }
-         }
-       } else {
-           setIsConnected(false);
-       }
-    }, (error) => {
-        console.error("Snapshot error:", error);
-        setIsConnected(false);
-        setError("Connection Failed: " + error.code);
-    });
-
-    return () => unsubSession();
+    return () => {
+        unsubSession();
+        unsubSongs();
+    };
   }, [sessionId, sessionName, role]);
 
   // Subscribe to Personal Notes (Cloud Sync)
@@ -239,13 +283,85 @@ export const useSession = (sessionId, role, sessionName) => {
       
       return () => unsubPersonal();
   }, [sessionId, role]);
-  
+
+  // Lazy loading & searching from library subcollection
+  const fetchLibrary = useCallback(async (searchQuery = '', isLoadMore = false) => {
+      if (!isLoadMore) {
+          lastVisibleRef.current = null;
+          hasMoreLibraryRef.current = true;
+          setHasMoreLibrary(true);
+      } else if (!hasMoreLibraryRef.current || !lastVisibleRef.current) {
+          return;
+      }
+      
+      if (libraryLoadingRef.current) return;
+      libraryLoadingRef.current = true;
+      setLibraryLoading(true);
+
+      try {
+          const searchLower = searchQuery.toLowerCase().trim();
+          let q;
+
+          if (searchLower) {
+              q = query(
+                  collection(db, 'sessions', sessionId, 'library'),
+                  orderBy('title_lowercase'),
+                  startAt(searchLower),
+                  endAt(searchLower + '\uf8ff'),
+                  limit(20)
+              );
+          } else {
+              q = query(
+                  collection(db, 'sessions', sessionId, 'library'),
+                  orderBy('title_lowercase'),
+                  limit(20)
+              );
+          }
+
+          if (isLoadMore && lastVisibleRef.current) {
+              q = query(q, startAfter(lastVisibleRef.current));
+          }
+
+          const querySnap = await getDocs(q);
+          const newSongs = [];
+          querySnap.forEach((doc) => {
+              newSongs.push({ id: doc.id, ...doc.data() });
+          });
+
+          const lastDoc = querySnap.docs[querySnap.docs.length - 1] || null;
+          lastVisibleRef.current = lastDoc;
+          
+          const hasMore = querySnap.docs.length === 20;
+          hasMoreLibraryRef.current = hasMore;
+          setHasMoreLibrary(hasMore);
+
+          if (isLoadMore) {
+              setLibrary(prev => {
+                  const merged = [...prev];
+                  newSongs.forEach(song => {
+                      if (!merged.some(s => s.id === song.id)) {
+                          merged.push(song);
+                      }
+                  });
+                  return merged;
+              });
+          } else {
+              setLibrary(newSongs);
+          }
+      } catch (err) {
+          console.error("Error fetching library:", err);
+          setError("Library Fetch Failed");
+      } finally {
+          libraryLoadingRef.current = false;
+          setLibraryLoading(false);
+      }
+  }, [sessionId]);
 
   const updateMasterNotes = async (text) => {
     setMasterNotes(text);
     setIsSaving(true);
     try {
-        await setDoc(doc(db, 'sessions', sessionId), { masterNotes: text }, { merge: true });
+        await updateDoc(doc(db, 'sessions', sessionId), { masterNotes: text }, { merge: true });
     } catch (error) {
         console.error("Error updating notes:", error);
         setError("Save Failed: " + error.code);
@@ -255,56 +371,86 @@ export const useSession = (sessionId, role, sessionName) => {
   };
 
   const addSong = async () => {
+    const newSongId = Date.now().toString();
     const newSong = { 
-        id: Date.now().toString(), 
         title: 'New Song', 
+        title_lowercase: 'new song',
         key: '', 
         tempo: '', 
         timeSig: '', 
         notes: '', 
         cues: [],
         category: 'Slow Acoustic',
-        isActive: false 
+        isActive: false,
+        order: songs.length
     };
-    const newSongs = [...songs, newSong];
-    setSongs(newSongs); // Optimistic
+    
+    const oldSongs = [...songs];
+    setSongs(prev => [...prev, { id: newSongId, ...newSong }]); // Optimistic UI
+    
     try {
-        await updateDoc(doc(db, 'sessions', sessionId), { songs: newSongs });
+        await setDoc(doc(db, 'sessions', sessionId, 'songs', newSongId), newSong);
     } catch (e) {
         console.error(e);
+        setSongs(oldSongs); // Rollback
         setError("Add Song Failed");
     }
   };
 
   const updateSong = async (id, field, value) => {
-      const newSongs = songs.map(s => s.id === id ? { ...s, [field]: value } : s);
-      setSongs(newSongs);
+      // Optimistic
+      setSongs(prev => prev.map(s => s.id === id ? { ...s, [field]: value, ...(field === 'title' ? { title_lowercase: value.toLowerCase() } : {}) } : s));
       setIsSaving(true);
       try {
-        await updateDoc(doc(db, 'sessions', sessionId), { songs: newSongs });
-      } catch (e) { console.error(e); } 
-      finally { setTimeout(() => setIsSaving(false), 500); }
+        const updateData = { [field]: value };
+        if (field === 'title') {
+            updateData.title_lowercase = value.toLowerCase();
+        }
+        await updateDoc(doc(db, 'sessions', sessionId, 'songs', id), updateData);
+      } catch (e) { 
+        console.error(e); 
+      } finally { 
+        setTimeout(() => setIsSaving(false), 500); 
+      }
   };
 
   const deleteSong = async (id) => {
-      const newSongs = songs.filter(s => s.id !== id);
-      setSongs(newSongs);
+      const oldSongs = [...songs];
+      setSongs(prev => prev.filter(s => s.id !== id)); // Optimistic
       try {
-        await updateDoc(doc(db, 'sessions', sessionId), { songs: newSongs });
-      } catch (e) { console.error(e); }
+        await deleteDoc(doc(db, 'sessions', sessionId, 'songs', id));
+      } catch (e) { 
+        console.error(e); 
+        setSongs(oldSongs); // Rollback
+      }
   };
 
   const toggleSongActive = async (id) => {
-      const newSongs = songs.map(s => {
+      const activeSong = songs.find(s => s.id === id);
+      const newActiveState = activeSong ? !activeSong.isActive : false;
+
+      // Optimistic UI
+      setSongs(prev => prev.map(s => {
           if (s.id === id) {
-              return { ...s, isActive: !s.isActive };
+              return { ...s, isActive: newActiveState };
           }
           return { ...s, isActive: false };
-      });
-      setSongs(newSongs);
+      }));
+
       try {
-        await updateDoc(doc(db, 'sessions', sessionId), { songs: newSongs });
-      } catch (e) { console.error(e); }
+          const batch = writeBatch(db);
+          songs.forEach(s => {
+              const songRef = doc(db, 'sessions', sessionId, 'songs', s.id);
+              if (s.id === id) {
+                  batch.update(songRef, { isActive: newActiveState });
+              } else if (s.isActive) {
+                  batch.update(songRef, { isActive: false });
+              }
+          });
+          await batch.commit();
+      } catch (e) { 
+          console.error(e); 
+      }
   };
 
   const updatePersonalNotes = async (text) => {
@@ -335,12 +481,19 @@ export const useSession = (sessionId, role, sessionName) => {
   };
 
   const reorderSongs = async (newSongs) => {
-      setSongs(newSongs);
+      const oldSongs = [...songs];
+      setSongs(newSongs); // Optimistic UI
       try {
-        await updateDoc(doc(db, 'sessions', sessionId), { songs: newSongs });
+          const batch = writeBatch(db);
+          newSongs.forEach((song, idx) => {
+              const songRef = doc(db, 'sessions', sessionId, 'songs', song.id);
+              batch.update(songRef, { order: idx });
+          });
+          await batch.commit();
       } catch (e) {
-        console.error("Reorder failed:", e);
-        setError("Reorder Failed");
+          console.error("Reorder failed:", e);
+          setSongs(oldSongs); // Rollback
+          setError("Reorder Failed");
       }
   };
 
@@ -365,51 +518,68 @@ export const useSession = (sessionId, role, sessionName) => {
   };
 
   const importSongs = async (newSongsToImport) => {
-      // Append or Replace? Let's Append for safety, or we could offer a choice.
-      // For this specific "Preset" use case, the user likely wants to populate an empty session or add to it.
-      // Let's go with Append, but filter out duplicates by ID if any (though IDs should be unique).
+      const oldSongs = [...songs];
       
-      const processedImports = newSongsToImport.map(s => ({
-          ...s,
-          category: s.category || 'Slow Acoustic'
-      }));
-      const updatedSongs = [...songs, ...processedImports];
-      setSongs(updatedSongs);
-
-      const libraryTitles = new Set(library.map(s => s.title.toLowerCase().trim()));
-      const missingLibrarySongs = processedImports.filter(s => s.title && s.title.trim() && !libraryTitles.has(s.title.toLowerCase().trim()));
-      
-      let updatedLibrary = [...library];
-      if (missingLibrarySongs.length > 0) {
-          const newLibSongs = missingLibrarySongs.map((s, idx) => ({
-              id: 'lib-' + Date.now().toString() + '-' + idx,
-              title: s.title,
-              key: s.key || '',
-              tempo: s.tempo || '',
-              timeSig: s.timeSig || '',
-              notes: s.notes || '',
+      const newSongs = newSongsToImport.map((s, idx) => {
+          const id = s.id || (Date.now().toString() + Math.random().toString(36).substr(2, 9));
+          return {
+              ...s,
+              id,
               category: s.category || 'Slow Acoustic',
-              cues: s.cues || []
-          }));
-          updatedLibrary = [...library, ...newLibSongs];
-          setLibrary(updatedLibrary);
-      }
+              order: songs.length + idx,
+              title_lowercase: (s.title || '').toLowerCase()
+          };
+      });
+      
+      // Optimistic
+      setSongs(prev => [...prev, ...newSongs]);
 
       try {
-          await updateDoc(doc(db, 'sessions', sessionId), { 
-              songs: updatedSongs,
-              library: updatedLibrary
+          const batch = writeBatch(db);
+          newSongs.forEach(song => {
+              const songRef = doc(db, 'sessions', sessionId, 'songs', song.id);
+              batch.set(songRef, song);
           });
+          await batch.commit();
+          
+          // Check and add missing songs to library
+          const libraryTitles = new Set(library.map(s => s.title.toLowerCase().trim()));
+          const missingLibrarySongs = newSongs.filter(s => s.title && s.title.trim() && !libraryTitles.has(s.title.toLowerCase().trim()));
+          
+          if (missingLibrarySongs.length > 0) {
+              const libBatch = writeBatch(db);
+              const libSongsToLocal = [];
+              missingLibrarySongs.forEach((s, idx) => {
+                  const libId = 'lib-' + Date.now().toString() + '-' + idx;
+                  const libSong = {
+                      title: s.title,
+                      title_lowercase: s.title.toLowerCase(),
+                      key: s.key || '',
+                      tempo: s.tempo || '',
+                      timeSig: s.timeSig || '',
+                      notes: s.notes || '',
+                      category: s.category || 'Slow Acoustic',
+                      cues: s.cues || []
+                  };
+                  libSongsToLocal.push({ id: libId, ...libSong });
+                  const libRef = doc(db, 'sessions', sessionId, 'library', libId);
+                  libBatch.set(libRef, libSong);
+              });
+              await libBatch.commit();
+              setLibrary(prev => [...prev, ...libSongsToLocal]);
+          }
       } catch (e) {
           console.error("Import failed:", e);
+          setSongs(oldSongs); // Rollback
           setError("Import Failed");
       }
   };
 
   const addLibrarySong = async () => {
+    const songId = 'lib-' + Date.now();
     const newLibSong = {
-        id: 'lib-' + Date.now().toString(),
         title: 'New Library Song',
+        title_lowercase: 'new library song',
         key: '',
         tempo: '',
         timeSig: '',
@@ -417,46 +587,69 @@ export const useSession = (sessionId, role, sessionName) => {
         category: 'Slow Acoustic',
         cues: []
     };
-    const newLibrary = [...library, newLibSong];
-    setLibrary(newLibrary);
+    
     try {
-        await updateDoc(doc(db, 'sessions', sessionId), { library: newLibrary });
+        await setDoc(doc(db, 'sessions', sessionId, 'library', songId), newLibSong);
+        setLibrary(prev => [{ id: songId, ...newLibSong }, ...prev]); // Optimistic
+        return songId;
     } catch (e) {
         console.error(e);
         setError("Add Library Song Failed");
+        return null;
     }
   };
 
   const updateLibrarySong = async (id, field, value) => {
-      const newLibrary = library.map(s => s.id === id ? { ...s, [field]: value } : s);
-      setLibrary(newLibrary);
+      // Optimistic
+      setLibrary(prev => prev.map(s => s.id === id ? { ...s, [field]: value, ...(field === 'title' ? { title_lowercase: value.toLowerCase() } : {}) } : s));
       setIsSaving(true);
       try {
-        await updateDoc(doc(db, 'sessions', sessionId), { library: newLibrary });
-      } catch (e) { console.error(e); } 
-      finally { setTimeout(() => setIsSaving(false), 500); }
+        const updateData = { [field]: value };
+        if (field === 'title') {
+            updateData.title_lowercase = value.toLowerCase();
+        }
+        await updateDoc(doc(db, 'sessions', sessionId, 'library', id), updateData);
+      } catch (e) { 
+          console.error(e); 
+      } finally { 
+          setTimeout(() => setIsSaving(false), 500); 
+      }
   };
 
   const deleteLibrarySong = async (id) => {
-      const newLibrary = library.filter(s => s.id !== id);
-      setLibrary(newLibrary);
+      const oldLibrary = [...library];
+      setLibrary(prev => prev.filter(s => s.id !== id)); // Optimistic
       try {
-        await updateDoc(doc(db, 'sessions', sessionId), { library: newLibrary });
-      } catch (e) { console.error(e); }
+        await deleteDoc(doc(db, 'sessions', sessionId, 'library', id));
+      } catch (e) { 
+          console.error(e); 
+          setLibrary(oldLibrary); // Rollback
+      }
   };
 
   const addSongToSetlist = async (libSong) => {
+      const newSongId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
       const newSong = {
-          ...libSong,
-          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-          isActive: false
+          title: libSong.title || '',
+          title_lowercase: (libSong.title || '').toLowerCase(),
+          key: libSong.key || '',
+          tempo: libSong.tempo || '',
+          timeSig: libSong.timeSig || '',
+          notes: libSong.notes || '',
+          category: libSong.category || 'Slow Acoustic',
+          cues: libSong.cues || [],
+          isActive: false,
+          order: songs.length
       };
-      const newSongs = [...songs, newSong];
-      setSongs(newSongs);
+      
+      const oldSongs = [...songs];
+      setSongs(prev => [...prev, { id: newSongId, ...newSong }]); // Optimistic
+      
       try {
-          await updateDoc(doc(db, 'sessions', sessionId), { songs: newSongs });
+          await setDoc(doc(db, 'sessions', sessionId, 'songs', newSongId), newSong);
       } catch (e) {
           console.error(e);
+          setSongs(oldSongs); // Rollback
           setError("Add to Setlist Failed");
       }
   };
@@ -465,6 +658,9 @@ export const useSession = (sessionId, role, sessionName) => {
     masterNotes,
     songs,
     library,
+    libraryLoading,
+    hasMoreLibrary,
+    fetchLibrary,
     personalNotes,
     broadcastMessage,
     sendBroadcast,

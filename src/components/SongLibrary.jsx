@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { X, Search, Plus, Trash2, Music, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { DebouncedInput, DebouncedTextarea } from './DebouncedInputs';
 
 const SongLibrary = ({ 
     isOpen, 
     onClose, 
     role, 
     library = [], 
+    libraryLoading = false,
+    hasMoreLibrary = true,
+    onFetchLibrary,
     songs = [],
     onAddLibrarySong, 
     onUpdateLibrarySong, 
@@ -15,21 +19,55 @@ const SongLibrary = ({
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedSongId, setExpandedSongId] = useState(null);
     const [addedSongsMap, setAddedSongsMap] = useState({}); // Tracking visual "Added" state momentarily
+    const [newlyAddedLibSongId, setNewlyAddedLibSongId] = useState(null);
+    const isFirstFieldRender = React.useRef(true);
+    const listContainerRef = React.useRef(null);
+
+    // Fetch initial list when drawer is opened
+    React.useEffect(() => {
+        if (isOpen) {
+            setSearchQuery('');
+            if (onFetchLibrary) {
+                onFetchLibrary('', false);
+            }
+            isFirstFieldRender.current = true;
+        }
+    }, [isOpen, onFetchLibrary]);
+
+    // Fetch on search query change (debounced at 400ms)
+    React.useEffect(() => {
+        if (!isOpen || !onFetchLibrary) return;
+        
+        if (isFirstFieldRender.current && searchQuery === '') {
+            isFirstFieldRender.current = false;
+            return;
+        }
+        
+        const handler = setTimeout(() => {
+            onFetchLibrary(searchQuery, false);
+        }, 400);
+        return () => clearTimeout(handler);
+    }, [searchQuery, isOpen, onFetchLibrary]);
 
     if (!isOpen) return null;
 
     const isKeyboard = role === 'keyboard';
 
-    // Filter library by search query
-    const filteredLibrary = library.filter(song => 
-        song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (song.key && song.key.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (song.notes && song.notes.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
-
-    const handleAddClick = () => {
+    const handleAddClick = async () => {
         if (onAddLibrarySong) {
-            onAddLibrarySong();
+            const newId = await onAddLibrarySong();
+            if (newId) {
+                setNewlyAddedLibSongId(newId);
+                setExpandedSongId(newId); // Auto-expand the newly added song for immediate editing
+                setTimeout(() => {
+                    if (listContainerRef.current) {
+                        listContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                }, 100);
+                setTimeout(() => {
+                    setNewlyAddedLibSongId(null);
+                }, 3000);
+            }
         }
     };
 
@@ -42,6 +80,15 @@ const SongLibrary = ({
             setTimeout(() => {
                 setAddedSongsMap(prev => ({ ...prev, [song.id]: false }));
             }, 1500);
+        }
+    };
+
+    const handleScroll = (e) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+        if (scrollHeight - scrollTop - clientHeight < 50) {
+            if (hasMoreLibrary && !libraryLoading && onFetchLibrary) {
+                onFetchLibrary(searchQuery, true);
+            }
         }
     };
 
@@ -111,8 +158,12 @@ const SongLibrary = ({
                 </div>
 
                 {/* Library List */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-slate-950/40">
-                    {filteredLibrary.map((song) => {
+                <div 
+                    ref={listContainerRef}
+                    onScroll={handleScroll}
+                    className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-slate-950/40"
+                >
+                    {library.map((song) => {
                         const isExpanded = expandedSongId === song.id;
                         const hasBeenAdded = addedSongsMap[song.id];
                         const isInSetlist = songs.some(s => s.title && s.title.toLowerCase().trim() === song.title.toLowerCase().trim());
@@ -121,13 +172,15 @@ const SongLibrary = ({
                             <div 
                                 key={song.id}
                                 className={`rounded-xl border transition-all ${
-                                    isInSetlist
+                                    song.id === newlyAddedLibSongId
+                                        ? 'animate-new-item-flash border-primary'
+                                        : isInSetlist
                                         ? isExpanded
                                             ? 'bg-secondary/10 border-secondary/50 shadow-lg shadow-secondary/5'
                                             : 'bg-secondary/5 border-secondary/20 hover:bg-secondary/10 hover:border-secondary/30'
                                         : isExpanded 
-                                            ? 'bg-slate-900/50 border-slate-700 shadow-lg' 
-                                            : 'bg-slate-900/20 border-slate-900/60 hover:bg-slate-900/30 hover:border-slate-800'
+                                        ? 'bg-slate-900/50 border-slate-700 shadow-lg' 
+                                        : 'bg-slate-900/20 border-slate-900/60 hover:bg-slate-900/30 hover:border-slate-800'
                                 }`}
                             >
                                 {/* Song Row Header */}
@@ -177,10 +230,9 @@ const SongLibrary = ({
                                             <div className="space-y-3">
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Song Title</label>
-                                                    <input 
-                                                        type="text"
+                                                    <DebouncedInput 
                                                         value={song.title}
-                                                        onChange={(e) => onUpdateLibrarySong(song.id, 'title', e.target.value)}
+                                                        onChange={(value) => onUpdateLibrarySong(song.id, 'title', value)}
                                                         className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-white focus:outline-none focus:border-primary"
                                                         placeholder="Title"
                                                     />
@@ -189,20 +241,18 @@ const SongLibrary = ({
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div className="space-y-1">
                                                         <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Key</label>
-                                                        <input 
-                                                            type="text"
+                                                        <DebouncedInput 
                                                             value={song.key || ''}
-                                                            onChange={(e) => onUpdateLibrarySong(song.id, 'key', e.target.value)}
+                                                            onChange={(value) => onUpdateLibrarySong(song.id, 'key', value)}
                                                             className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-white focus:outline-none focus:border-primary"
                                                             placeholder="Key"
                                                         />
                                                     </div>
                                                     <div className="space-y-1">
                                                         <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Tempo (BPM)</label>
-                                                        <input 
-                                                            type="text"
+                                                        <DebouncedInput 
                                                             value={song.tempo || ''}
-                                                            onChange={(e) => onUpdateLibrarySong(song.id, 'tempo', e.target.value)}
+                                                            onChange={(value) => onUpdateLibrarySong(song.id, 'tempo', value)}
                                                             className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-white focus:outline-none focus:border-primary"
                                                             placeholder="BPM"
                                                         />
@@ -212,10 +262,9 @@ const SongLibrary = ({
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div className="space-y-1">
                                                         <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Time Signature</label>
-                                                        <input 
-                                                            type="text"
+                                                        <DebouncedInput 
                                                             value={song.timeSig || ''}
-                                                            onChange={(e) => onUpdateLibrarySong(song.id, 'timeSig', e.target.value)}
+                                                            onChange={(value) => onUpdateLibrarySong(song.id, 'timeSig', value)}
                                                             className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-white focus:outline-none focus:border-primary"
                                                             placeholder="4/4"
                                                         />
@@ -236,9 +285,9 @@ const SongLibrary = ({
 
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Flow Notes</label>
-                                                    <textarea 
+                                                    <DebouncedTextarea 
                                                         value={song.notes || ''}
-                                                        onChange={(e) => onUpdateLibrarySong(song.id, 'notes', e.target.value)}
+                                                        onChange={(value) => onUpdateLibrarySong(song.id, 'notes', value)}
                                                         className="w-full h-20 bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-300 focus:outline-none focus:border-primary resize-none custom-scrollbar"
                                                         placeholder="Flow notes..."
                                                     />
@@ -324,12 +373,19 @@ const SongLibrary = ({
                         );
                     })}
 
-                    {filteredLibrary.length === 0 && (
+                    {library.length === 0 && !libraryLoading && (
                         <div className="py-16 text-center text-slate-600 flex flex-col items-center justify-center gap-3 border border-dashed border-slate-900 rounded-2xl">
                             <Music className="w-8 h-8 opacity-40" />
                             <p className="text-sm">
                                 {searchQuery ? 'No matching songs found' : 'The Library is empty'}
                             </p>
+                        </div>
+                    )}
+
+                    {libraryLoading && (
+                        <div className="py-4 text-center text-primary/80 font-bold flex items-center justify-center gap-2 animate-pulse text-sm">
+                            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            <span>Loading songs...</span>
                         </div>
                     )}
                 </div>

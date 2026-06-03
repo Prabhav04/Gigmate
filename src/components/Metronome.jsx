@@ -1,17 +1,35 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, Activity } from 'lucide-react';
 
-const Metronome = ({ suggestedBPM = 120, suggestedTimeSig = '4/4', compact = false }) => {
+const Metronome = ({ suggestedBPM = 120, suggestedTimeSig = '4/4', compact = false, hasActiveSong = false }) => {
     const [bpm, setBpm] = useState(suggestedBPM);
     const [timeSig, setTimeSig] = useState(suggestedTimeSig);
     const [isPlaying, setIsPlaying] = useState(false);
     const [beat, setBeat] = useState(0);
     const [tapTimes, setTapTimes] = useState([]);
 
-    const audioContextRef = useRef(null);
-    const intervalRef = useRef(null);
+    // Revert to 120 BPM and 4/4 if no active song is chosen
+    useEffect(() => {
+        if (!hasActiveSong) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setBpm(120);
+            setTimeSig('4/4');
+            setBeat(0);
+        }
+    }, [hasActiveSong]);
 
-    // Parse time signature (e.g., "4/4", "3/4", "6/8", "5/4")
+    const audioContextRef = useRef(null);
+    const timerIDRef = useRef(null);
+    const nextNoteTimeRef = useRef(0.0); // when the next note is due
+    const beatRef = useRef(0);
+    const activeTimersRef = useRef([]);
+
+    // Keep ref copy of bpm/beatsPerMeasure up-to-date to read inside loop without rebuilding the scheduler
+    const bpmRef = useRef(bpm);
+    useEffect(() => {
+        bpmRef.current = bpm;
+    }, [bpm]);
+
     const parseTimeSig = (sig) => {
         if (!sig || typeof sig !== 'string') return 4;
         const parts = sig.split('/');
@@ -20,10 +38,16 @@ const Metronome = ({ suggestedBPM = 120, suggestedTimeSig = '4/4', compact = fal
     };
 
     const beatsPerMeasure = parseTimeSig(timeSig);
-
-    // Initialize Web Audio API
+    const beatsPerMeasureRef = useRef(beatsPerMeasure);
     useEffect(() => {
-        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+        beatsPerMeasureRef.current = beatsPerMeasure;
+    }, [beatsPerMeasure]);
+
+    const lookahead = 25.0; // How frequently to call scheduling function (in ms)
+    const scheduleAheadTime = 0.1; // How far ahead to schedule audio (in seconds)
+
+    // Closes AudioContext when metronome component is unmounted
+    useEffect(() => {
         return () => {
             if (audioContextRef.current) {
                 audioContextRef.current.close();
@@ -31,49 +55,100 @@ const Metronome = ({ suggestedBPM = 120, suggestedTimeSig = '4/4', compact = fal
         };
     }, []);
 
-    // Play click sound
-    const playClick = (isAccent = false) => {
+    // Schedules sound play and visual state updates
+    const scheduleNote = useCallback((beatNumber, time) => {
         const ctx = audioContextRef.current;
         if (!ctx) return;
 
-        const oscillator = ctx.createOscillator();
+        const osc = ctx.createOscillator();
         const gainNode = ctx.createGain();
 
-        oscillator.connect(gainNode);
+        osc.connect(gainNode);
         gainNode.connect(ctx.destination);
 
-        oscillator.frequency.value = isAccent ? 1000 : 800;
-        gainNode.gain.value = isAccent ? 0.3 : 0.2;
+        const isAccent = beatNumber === 0;
+        osc.frequency.setValueAtTime(isAccent ? 1000 : 800, time);
+        gainNode.gain.setValueAtTime(isAccent ? 0.3 : 0.15, time);
+        // Exponential decay for clicky response
+        gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
 
-        oscillator.start(ctx.currentTime);
-        oscillator.stop(ctx.currentTime + 0.05);
-    };
+        osc.start(time);
+        osc.stop(time + 0.06);
 
-    // Metronome logic
+        // Schedule visual beat updates on UI thread
+        const diffMs = (time - ctx.currentTime) * 1000;
+        const timer = setTimeout(() => {
+            setBeat(beatNumber);
+        }, Math.max(0, diffMs));
+
+        activeTimersRef.current.push(timer);
+    }, []);
+
+    // Scheduler loop - checks context time vs target note times
+    const scheduler = useCallback(() => {
+        const ctx = audioContextRef.current;
+        if (!ctx) return;
+
+        while (nextNoteTimeRef.current < ctx.currentTime + scheduleAheadTime) {
+            const currentBpm = bpmRef.current;
+            const currentBeatsPerMeasure = beatsPerMeasureRef.current;
+            const scheduledBeat = beatRef.current;
+
+            scheduleNote(scheduledBeat, nextNoteTimeRef.current);
+
+            // Advance target note time
+            const secondsPerBeat = 60.0 / currentBpm;
+            nextNoteTimeRef.current += secondsPerBeat;
+
+            // Increment beat index
+            beatRef.current = (beatRef.current + 1) % currentBeatsPerMeasure;
+        }
+    }, [scheduleNote]);
+
+    // Handles metronome scheduler loop starting and stopping
     useEffect(() => {
         if (isPlaying) {
-            const interval = (60 / bpm) * 1000;
-            let currentBeat = 0;
-
-            intervalRef.current = setInterval(() => {
-                playClick(currentBeat === 0);
-                setBeat(currentBeat);
-                currentBeat = (currentBeat + 1) % beatsPerMeasure;
-            }, interval);
-        } else {
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
+            if (!audioContextRef.current) {
+                audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
             }
+
+            const ctx = audioContextRef.current;
+
+            const startMetronome = async () => {
+                if (ctx.state === 'suspended') {
+                    await ctx.resume();
+                }
+
+                nextNoteTimeRef.current = ctx.currentTime + 0.05;
+                beatRef.current = 0;
+                setBeat(0);
+
+                timerIDRef.current = setInterval(() => {
+                    scheduler();
+                }, lookahead);
+            };
+
+            startMetronome();
+
+            return () => {
+                if (timerIDRef.current) {
+                    clearInterval(timerIDRef.current);
+                    timerIDRef.current = null;
+                }
+                activeTimersRef.current.forEach(t => clearTimeout(t));
+                activeTimersRef.current = [];
+            };
+        } else {
+            if (timerIDRef.current) {
+                clearInterval(timerIDRef.current);
+                timerIDRef.current = null;
+            }
+            activeTimersRef.current.forEach(t => clearTimeout(t));
+            activeTimersRef.current = [];
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setBeat(0);
         }
-
-        return () => {
-            if (intervalRef.current) {
-                clearInterval(intervalRef.current);
-            }
-        };
-    }, [isPlaying, bpm, beatsPerMeasure]);
+    }, [isPlaying, scheduler]);
 
     const togglePlay = () => {
         setIsPlaying(!isPlaying);
@@ -115,7 +190,6 @@ const Metronome = ({ suggestedBPM = 120, suggestedTimeSig = '4/4', compact = fal
         if (suggestedTimeSig && suggestedTimeSig !== timeSig) {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setTimeSig(suggestedTimeSig);
-            // Reset beat when time signature changes
             setBeat(0);
         }
     }, [suggestedTimeSig, timeSig]);
@@ -132,9 +206,10 @@ const Metronome = ({ suggestedBPM = 120, suggestedTimeSig = '4/4', compact = fal
                             type="number"
                             value={bpm}
                             onChange={(e) => setBpm(Math.max(40, Math.min(240, parseInt(e.target.value) || 120)))}
-                            className="w-12 bg-black border border-slate-800 rounded px-1.5 py-0.5 text-center text-sm font-bold text-white focus:outline-none focus:border-primary"
+                            className="w-12 bg-black border border-slate-800 rounded px-1.5 py-0.5 text-center text-sm font-bold text-white focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
                             min="40"
                             max="240"
+                            disabled={!hasActiveSong}
                         />
                     </div>
 
@@ -146,7 +221,8 @@ const Metronome = ({ suggestedBPM = 120, suggestedTimeSig = '4/4', compact = fal
                             value={timeSig}
                             onChange={(e) => setTimeSig(e.target.value)}
                             placeholder="4/4"
-                            className="w-12 bg-black border border-slate-800 rounded px-1.5 py-0.5 text-center text-xs font-bold text-white focus:outline-none focus:border-primary"
+                            className="w-12 bg-black border border-slate-800 rounded px-1.5 py-0.5 text-center text-xs font-bold text-white focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={!hasActiveSong}
                         />
                     </div>
 
@@ -181,8 +257,9 @@ const Metronome = ({ suggestedBPM = 120, suggestedTimeSig = '4/4', compact = fal
 
                     <button
                         onClick={handleTap}
-                        className="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded text-white transition-all hover:scale-105 flex items-center justify-center"
+                        className="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded text-white transition-all hover:scale-105 disabled:hover:scale-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center"
                         title="Tap to set tempo"
+                        disabled={!hasActiveSong}
                     >
                         <Activity size={14} />
                     </button>
@@ -207,9 +284,10 @@ const Metronome = ({ suggestedBPM = 120, suggestedTimeSig = '4/4', compact = fal
                         type="number"
                         value={bpm}
                         onChange={(e) => setBpm(Math.max(40, Math.min(240, parseInt(e.target.value) || 120)))}
-                        className="w-16 md:w-20 bg-black border border-slate-700 rounded px-2 py-1 text-center text-xl md:text-2xl font-bold text-white focus:outline-none focus:border-primary"
+                        className="w-16 md:w-20 bg-black border border-slate-700 rounded px-2 py-1 text-center text-xl md:text-2xl font-bold text-white focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
                         min="40"
                         max="240"
+                        disabled={!hasActiveSong}
                     />
                 </div>
 
@@ -220,7 +298,8 @@ const Metronome = ({ suggestedBPM = 120, suggestedTimeSig = '4/4', compact = fal
                         value={timeSig}
                         onChange={(e) => setTimeSig(e.target.value)}
                         placeholder="4/4"
-                        className="w-12 md:w-16 bg-black border border-slate-700 rounded px-2 py-1 text-center text-lg md:text-xl font-bold text-white focus:outline-none focus:border-primary"
+                        className="w-12 md:w-16 bg-black border border-slate-700 rounded px-2 py-1 text-center text-lg md:text-xl font-bold text-white focus:outline-none focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={!hasActiveSong}
                     />
                 </div>
 
@@ -255,8 +334,9 @@ const Metronome = ({ suggestedBPM = 120, suggestedTimeSig = '4/4', compact = fal
 
                 <button
                     onClick={handleTap}
-                    className="px-3 md:px-4 py-2 md:py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg text-white font-bold text-sm md:text-base transition-all hover:scale-105 flex items-center gap-2"
+                    className="px-3 md:px-4 py-2 md:py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg text-white font-bold text-sm md:text-base transition-all hover:scale-105 disabled:hover:scale-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
                     title="Tap to set tempo"
+                    disabled={!hasActiveSong}
                 >
                     <Activity size={16} className="md:w-5 md:h-5" />
                     <span className="hidden md:inline">Tap Tempo</span>

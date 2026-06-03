@@ -1,10 +1,11 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Reorder, useDragControls } from 'framer-motion';
 import { GripVertical, Play, Circle, Plus, Trash2, FileText, ListOrdered, X, BookOpen } from 'lucide-react';
 import Metronome from './Metronome';
+import { DebouncedInput, DebouncedTextarea } from './DebouncedInputs';
 
 // ─── Framer-Motion item for the FULL edit view ───────────────────────────────
-const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteSong, canReorder = true }) => {
+const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteSong, canReorder = true, isNewlyAdded = false }) => {
     const dragControls = useDragControls();
 
     const content = (
@@ -12,10 +13,9 @@ const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteS
             <div className="flex-1 space-y-2 md:space-y-6 min-w-0">
                 <div className="flex gap-2">
                     <div className="pt-1.5 md:pt-2 text-slate-500 font-mono text-base md:text-lg font-bold shrink-0">#{index + 1}</div>
-                    <input
-                        type="text"
+                    <DebouncedInput
                         value={song.title}
-                        onChange={(e) => onUpdateSong(song.id, 'title', e.target.value)}
+                        onChange={(value) => onUpdateSong(song.id, 'title', value)}
                         placeholder="Song Title"
                         className="flex-1 bg-transparent border-b border-slate-700 focus:border-primary focus:outline-none text-xl md:text-2xl font-bold text-white pb-1 placeholder:text-slate-700 w-full min-w-0"
                     />
@@ -23,10 +23,9 @@ const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteS
 
                 <div className="flex flex-row flex-wrap justify-between gap-2 text-[13px] md:text-sm">
                     <div className="flex flex-row gap-1.5 items-center">
-                        <input
-                            type="text"
+                        <DebouncedInput
                             value={song.key || ''}
-                            onChange={(e) => onUpdateSong(song.id, 'key', e.target.value)}
+                            onChange={(value) => onUpdateSong(song.id, 'key', value)}
                             placeholder="Key"
                             className="w-10 sm:w-16 md:w-20 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-1 md:px-2 md:py-1 text-slate-300 focus:border-primary focus:outline-none"
                         />
@@ -41,26 +40,24 @@ const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteS
                         </select>
                     </div>
                     <div className="flex flex-row gap-1">
-                        <input
-                            type="text"
+                        <DebouncedInput
                             value={song.tempo || ''}
-                            onChange={(e) => onUpdateSong(song.id, 'tempo', e.target.value)}
+                            onChange={(value) => onUpdateSong(song.id, 'tempo', value)}
                             placeholder="BPM"
                             className="w-10 sm:w-16 md:w-20 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-1 md:px-2 md:py-1 text-slate-300 focus:border-primary focus:outline-none"
                         />
-                        <input
-                            type="text"
+                        <DebouncedInput
                             value={song.timeSig || ''}
-                            onChange={(e) => onUpdateSong(song.id, 'timeSig', e.target.value)}
+                            onChange={(value) => onUpdateSong(song.id, 'timeSig', value)}
                             placeholder="Sig"
                             className="w-10 sm:w-16 md:w-20 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-1 md:px-2 md:py-1 text-slate-300 focus:border-primary focus:outline-none"
                         />
                     </div>
                 </div>
 
-                <textarea
+                <DebouncedTextarea
                     value={song.notes}
-                    onChange={(e) => onUpdateSong(song.id, 'notes', e.target.value)}
+                    onChange={(value) => onUpdateSong(song.id, 'notes', value)}
                     placeholder="Specific notes..."
                     className="w-full h-[200px] bg-slate-900/50 rounded p-1.5 md:p-2 text-slate-300 min-h-[60px] md:min-h-[80px] focus:outline-none focus:ring-1 focus:ring-primary text-sm md:text-lg resize-y custom-scrollbar"
                 />
@@ -99,7 +96,13 @@ const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteS
         </div>
     );
 
-    const containerClassName = `p-3 md:p-4 rounded-lg border transition-all ${song.isActive ? 'bg-primary/10 border-primary shadow-[0_0_15px_rgba(167,139,250,0.1)]' : 'bg-black border-slate-800'}`;
+    const containerClassName = `p-3 md:p-4 rounded-lg border transition-all ${
+        isNewlyAdded
+            ? 'animate-new-item-flash border-primary'
+            : song.isActive
+            ? 'bg-primary/10 border-primary shadow-[0_0_15px_rgba(167,139,250,0.15)]'
+            : 'bg-black border-slate-800'
+    }`;
 
     if (canReorder) {
         return (
@@ -437,6 +440,37 @@ const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSo
     const [filterCategory, setFilterCategory] = useState('All');
     const [sortBy, setSortBy] = useState('original');
     const listRef = useRef(null);
+    const [newlyAddedSongId, setNewlyAddedSongId] = useState(null);
+    const prevSongsLength = useRef(songs?.length || 0);
+    const isFirstLoad = useRef(true);
+
+    useEffect(() => {
+        const currentLength = songs?.length || 0;
+        if (isFirstLoad.current) {
+            if (currentLength > 0) {
+                isFirstLoad.current = false;
+                prevSongsLength.current = currentLength;
+            }
+            return;
+        }
+
+        if (currentLength > prevSongsLength.current) {
+            const sorted = [...songs].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+            const newSong = sorted[sorted.length - 1];
+            if (newSong) {
+                setNewlyAddedSongId(newSong.id);
+                const isVisible = filterCategory === 'All' || newSong.category === filterCategory;
+                if (isVisible) {
+                    scrollToBottom();
+                }
+                const timer = setTimeout(() => {
+                    setNewlyAddedSongId(null);
+                }, 3000);
+                return () => clearTimeout(timer);
+            }
+        }
+        prevSongsLength.current = currentLength;
+    }, [songs, filterCategory]);
 
     // First, map songs to include their original index so their # display label is correct
     const songsWithOriginalIndex = (songs || []).map((song, index) => ({
@@ -522,6 +556,7 @@ const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSo
                     <Metronome
                         suggestedBPM={songs.find(s => s.isActive)?.tempo ? parseInt(songs.find(s => s.isActive).tempo) : 120}
                         suggestedTimeSig={songs.find(s => s.isActive)?.timeSig || '4/4'}
+                        hasActiveSong={songs.some(s => s.isActive)}
                     />
                 </div>
                 <button
@@ -673,6 +708,7 @@ const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSo
                                             onDeleteSong={onDeleteSong}
                                             onToggleActive={onToggleActive}
                                             canReorder={true}
+                                            isNewlyAdded={newlyAddedSongId === song.id}
                                         />
                                     ))}
                                 </Reorder.Group>
@@ -687,6 +723,7 @@ const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSo
                                             onDeleteSong={onDeleteSong}
                                             onToggleActive={onToggleActive}
                                             canReorder={false}
+                                            isNewlyAdded={newlyAddedSongId === song.id}
                                         />
                                     ))}
                                 </div>

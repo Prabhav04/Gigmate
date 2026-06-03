@@ -23,6 +23,9 @@ const SessionSpace = () => {
         masterNotes,
         songs,
         library,
+        libraryLoading,
+        hasMoreLibrary,
+        fetchLibrary,
         personalNotes,
         updateMasterNotes,
         addSong,
@@ -174,6 +177,9 @@ const SessionSpace = () => {
                 onClose={() => setShowLibrary(false)}
                 role={role}
                 library={library}
+                libraryLoading={libraryLoading}
+                hasMoreLibrary={hasMoreLibrary}
+                onFetchLibrary={fetchLibrary}
                 songs={songs}
                 onAddLibrarySong={addLibrarySong}
                 onUpdateLibrarySong={updateLibrarySong}

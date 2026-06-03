@@ -147,6 +147,22 @@ const BroadcastOverlay = ({ message, isKeyboard, onDismiss }) => {
             )}
         </div>
     );
+};const parseSingerNote = (rawNote) => {
+    if (!rawNote) return { lyrics: '', intro: '' };
+    if (typeof rawNote === 'string' && rawNote.trim().startsWith('{') && rawNote.trim().endsWith('}')) {
+        try {
+            const parsed = JSON.parse(rawNote);
+            if (parsed && (parsed.lyrics !== undefined || parsed.intro !== undefined)) {
+                return {
+                    lyrics: parsed.lyrics || '',
+                    intro: parsed.intro || ''
+                };
+            }
+        } catch {
+            // ignore
+        }
+    }
+    return { lyrics: rawNote, intro: '' };
 };
 
 const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActive, broadcastMessage, onSendBroadcast, onDismissBroadcast }) => {
@@ -197,7 +213,7 @@ const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActiv
     const renderWithTags = (text) => {
         if (!text) return <span className="opacity-30 italic">No notes available</span>;
 
-        const parts = text.split(/(\\|[^|]+\\||\\[[^\\]]+\\])/g);
+        const parts = text.split(/(\|[^*]+\||\\[[^\\]]+\\])/g);
 
         return parts.map((part, i) => {
             // Tag Logic: |DROP|
@@ -248,6 +264,7 @@ const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActiv
     }
 
     const myPersonalNote = songPersonalNotes?.[currentSong.id] || '';
+    const singerNote = role === 'singer' ? parseSingerNote(myPersonalNote) : null;
 
     return (
         <div className="fixed inset-0 bg-black z-50 flex flex-col text-white overflow-hidden">
@@ -368,15 +385,30 @@ const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActiv
 
                             {/* Content based on tab */}
                             {singerTab === 'lyrics' ? (
-                                myPersonalNote ? (
-                                    <div className="text-2xl md:text-4xl leading-relaxed whitespace-pre-wrap text-secondary/90">
-                                        {myPersonalNote}
-                                    </div>
-                                ) : (
-                                    <div className="text-xl md:text-2xl text-slate-600 italic">
-                                        No lyrics for this song. Exit to edit mode to add lyrics.
-                                    </div>
-                                )
+                                <>
+                                    {/* Optional Spoken Intro displayed at the top */}
+                                    {singerNote && singerNote.intro && singerNote.intro.trim() && (
+                                        <div className="mb-8 p-6 bg-primary/10 border border-primary/30 rounded-xl shadow-[0_0_20px_rgba(16,172,175,0.15)] animate-fade-in-up">
+                                            <div className="text-[10px] md:text-xs text-primary uppercase font-bold tracking-widest mb-2 flex items-center gap-1.5">
+                                                <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                                                Spoken Intro
+                                            </div>
+                                            <div className="text-xl md:text-3xl font-display text-white/95 leading-relaxed font-semibold italic">
+                                                "{singerNote.intro}"
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {singerNote && singerNote.lyrics ? (
+                                        <div className="text-2xl md:text-4xl leading-relaxed whitespace-pre-wrap text-secondary/90">
+                                            {singerNote.lyrics}
+                                        </div>
+                                    ) : (
+                                        <div className="text-xl md:text-2xl text-slate-600 italic">
+                                            No lyrics for this song. Exit to edit mode to add lyrics.
+                                        </div>
+                                    )}
+                                </>
                             ) : (
                                 currentSong.notes ? (
                                     <div className="text-2xl md:text-4xl leading-relaxed whitespace-pre-wrap text-white/90">
