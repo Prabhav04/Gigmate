@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Reorder, useDragControls } from 'framer-motion';
-import { GripVertical, Play, Circle, Plus, Trash2, FileText, ListOrdered, X, BookOpen } from 'lucide-react';
+import { Reorder, useDragControls, AnimatePresence, motion } from 'framer-motion';
+import { GripVertical, Play, Circle, Plus, Trash2, FileText, ListOrdered, X, BookOpen, Sliders, ChevronDown, ChevronUp } from 'lucide-react';
 import Metronome from './Metronome';
 import { DebouncedInput, DebouncedTextarea } from './DebouncedInputs';
 
@@ -435,6 +435,7 @@ const CompactSortView = ({ songs, onReorderSongs }) => {
 
 const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSongs, onToggleActive, onImportSongs, onToggleLibrary }) => {
     const [showImport, setShowImport] = useState(false);
+    const [showTools, setShowTools] = useState(false);
     const [isSortMode, setIsSortMode] = useState(false);
     const [importText, setImportText] = useState('');
     const [filterCategory, setFilterCategory] = useState('All');
@@ -550,23 +551,53 @@ const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSo
 
     return (
         <div className="flex flex-col h-full gap-4">
-            {/* Metronome & Library Bar */}
-            <div className="flex flex-col lg:flex-row gap-3">
-                <div className="flex-1">
-                    <Metronome
-                        suggestedBPM={songs.find(s => s.isActive)?.tempo ? parseInt(songs.find(s => s.isActive).tempo) : 120}
-                        suggestedTimeSig={songs.find(s => s.isActive)?.timeSig || '4/4'}
-                        hasActiveSong={songs.some(s => s.isActive)}
-                    />
-                </div>
+            {/* Tools Collapsible Section */}
+            <div className="flex flex-col gap-2 shrink-0">
                 <button
-                    onClick={onToggleLibrary}
-                    className="lg:w-48 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-lg p-3 md:p-4 flex items-center justify-center gap-2 text-white font-bold transition-all hover:border-slate-500 cursor-pointer shadow-md"
-                    title="Open Song Library"
+                    onClick={() => setShowTools(!showTools)}
+                    className="flex justify-between items-center bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 rounded-lg px-4 py-3 transition-all cursor-pointer select-none text-left w-full shadow-md group"
                 >
-                    <BookOpen className="w-5 h-5 text-primary" />
-                    <span>Song Library</span>
+                    <div className="flex items-center gap-2">
+                        <Sliders className="w-5 h-5 text-primary group-hover:rotate-12 transition-transform" />
+                        <span className="font-bold text-sm md:text-base text-slate-300 group-hover:text-white transition-colors">Tools</span>
+                        <span className="text-[11px] bg-slate-950 text-slate-400 border border-slate-800 px-2.5 py-0.5 rounded-full font-medium">
+                            Metronome & Library
+                        </span>
+                    </div>
+                    <div className="text-slate-400 group-hover:text-white transition-colors">
+                        {showTools ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                    </div>
                 </button>
+
+                <AnimatePresence initial={false}>
+                    {showTools && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2, ease: 'easeInOut' }}
+                            className="overflow-hidden"
+                        >
+                            <div className="flex flex-col lg:flex-row gap-3 pb-1 pt-1">
+                                <div className="flex-1">
+                                    <Metronome
+                                        suggestedBPM={songs.find(s => s.isActive)?.tempo ? parseInt(songs.find(s => s.isActive).tempo) : 120}
+                                        suggestedTimeSig={songs.find(s => s.isActive)?.timeSig || '4/4'}
+                                        hasActiveSong={songs.some(s => s.isActive)}
+                                    />
+                                </div>
+                                <button
+                                    onClick={onToggleLibrary}
+                                    className="lg:w-48 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-lg p-3 md:p-4 flex items-center justify-center gap-2 text-white font-bold transition-all hover:border-slate-500 cursor-pointer shadow-md"
+                                    title="Open Song Library"
+                                >
+                                    <BookOpen className="w-5 h-5 text-primary" />
+                                    <span>Song Library</span>
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
             {/* Setlist Section */}

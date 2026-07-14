@@ -53,7 +53,7 @@ const RadialShowMenu = ({ onSendBroadcast }) => {
                 <button
                     key={item.label}
                     onClick={() => handleItemClick(item)}
-                    className="transition-all duration-300 ease-out animate-radial-in"
+                    className="transition-all duration-300 ease-out animate-radial-in cursor-pointer"
                     style={{ animationDelay: `${index * 60}ms` }}
                     title={item.label}
                 >
@@ -61,17 +61,13 @@ const RadialShowMenu = ({ onSendBroadcast }) => {
                     <span className="bg-surface/95 backdrop-blur-md border border-glass-border text-secondary text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap shadow-lg pointer-events-none">
                         {item.label}
                     </span>
-                    {/* Icon circle */}
-                    {/* <span className="w-11 h-11 flex items-center justify-center rounded-full bg-surface border-2 border-primary/50 shadow-lg shadow-primary/20 hover:scale-110 hover:border-primary transition-transform cursor-pointer shrink-0">
-                        {IconComponent(item.icon, { size: 20, className: 'text-primary' })}
-                    </span> */}
                 </button>
             ))}
 
             {/* Hamburger trigger button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`relative w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 ${
+                className={`relative w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer ${
                     isOpen
                         ? 'bg-red-500/90 rotate-45 scale-110'
                         : 'bg-primary/90 animate-hamburger-glow'
@@ -101,17 +97,9 @@ const BroadcastOverlay = ({ message, isKeyboard, onDismiss }) => {
         >
             {/* Pulse rings behind icon */}
             <div className="relative flex items-center justify-center mb-8">
-                <div
-                    className="absolute w-40 h-40 rounded-full border-2 border-primary/40 animate-broadcast-ring"
-                />
-                <div
-                    className="absolute w-40 h-40 rounded-full border-2 border-primary/30 animate-broadcast-ring"
-                    style={{ animationDelay: '0.5s' }}
-                />
-                <div
-                    className="absolute w-40 h-40 rounded-full border-2 border-primary/20 animate-broadcast-ring"
-                    style={{ animationDelay: '1s' }}
-                />
+                <div className="absolute w-40 h-40 rounded-full border-2 border-primary/40 animate-broadcast-ring" />
+                <div className="absolute w-40 h-40 rounded-full border-2 border-primary/30 animate-broadcast-ring" style={{ animationDelay: '0.5s' }} />
+                <div className="absolute w-40 h-40 rounded-full border-2 border-primary/20 animate-broadcast-ring" style={{ animationDelay: '1s' }} />
                 {/* Icon */}
                 <div className="w-28 h-28 md:w-36 md:h-36 rounded-full bg-primary/15 border-2 border-primary/40 flex items-center justify-center animate-broadcast-emoji relative z-10">
                     {IconComponent && IconComponent({ size: 64, className: 'text-primary md:w-20 md:h-20' })}
@@ -138,7 +126,7 @@ const BroadcastOverlay = ({ message, isKeyboard, onDismiss }) => {
             {isKeyboard && (
                 <button
                     onClick={onDismiss}
-                    className="mt-12 flex items-center gap-2 px-8 py-4 bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 text-red-400 font-bold rounded-xl transition-all hover:scale-105 text-lg animate-broadcast-text"
+                    className="mt-12 flex items-center gap-2 px-8 py-4 bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 text-red-400 font-bold rounded-xl transition-all hover:scale-105 text-lg animate-broadcast-text cursor-pointer"
                     style={{ animationDelay: '0.7s' }}
                 >
                     <X size={22} />
@@ -147,22 +135,93 @@ const BroadcastOverlay = ({ message, isKeyboard, onDismiss }) => {
             )}
         </div>
     );
-};const parseSingerNote = (rawNote) => {
-    if (!rawNote) return { lyrics: '', intro: '' };
+};
+
+// Parses the JSON note string into { lyrics, intro, bars }.
+// "bars" is the new bar/cue structure: [{ id, cue, beats: [syllable, ...] }, ...]
+const parseSingerNote = (rawNote) => {
+    if (!rawNote) return { lyrics: '', intro: '', bars: [] };
     if (typeof rawNote === 'string' && rawNote.trim().startsWith('{') && rawNote.trim().endsWith('}')) {
         try {
             const parsed = JSON.parse(rawNote);
-            if (parsed && (parsed.lyrics !== undefined || parsed.intro !== undefined)) {
+            if (parsed && (parsed.lyrics !== undefined || parsed.intro !== undefined || parsed.bars !== undefined)) {
                 return {
                     lyrics: parsed.lyrics || '',
-                    intro: parsed.intro || ''
+                    intro: parsed.intro || '',
+                    bars: Array.isArray(parsed.bars) ? parsed.bars : []
                 };
             }
         } catch {
             // ignore
         }
     }
-    return { lyrics: rawNote, intro: '' };
+    return { lyrics: rawNote, intro: '', bars: [] };
+};
+
+// Reads the beats-per-bar count out of a time signature string like "4/4", "3/4", "6/8".
+// Falls back to 4 if it can't be parsed.
+const getBeatsPerBar = (timeSig) => {
+    if (!timeSig) return 4;
+    const match = String(timeSig).match(/^(\d+)/);
+    const beats = match ? parseInt(match[1], 10) : 4;
+    return beats > 0 ? beats : 4;
+};
+
+// --- Bar Lyrics View (Singer tab) ---
+// Renders lyrics 4 bars per line, each bar a grid of beat cells holding one
+// syllable/word per beat, with an optional cue pill floating above the bar.
+const BAR_LINE_SIZE = 4;
+
+const BarLyricsView = ({ bars, timeSig }) => {
+    if (!bars || bars.length === 0) return null;
+    const beatsPerBar = getBeatsPerBar(timeSig);
+
+    const lines = [];
+    for (let i = 0; i < bars.length; i += BAR_LINE_SIZE) {
+        lines.push(bars.slice(i, i + BAR_LINE_SIZE));
+    }
+
+    return (
+        <div className="space-y-6 md:space-y-8">
+            {lines.map((lineBars, lineIdx) => (
+                <div key={lineIdx} className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                    {lineBars.map((bar, barIdx) => (
+                        <div key={bar.id || `${lineIdx}-${barIdx}`} className="flex flex-col">
+                            {/* Cue pill — reserves height even when empty so bars stay aligned */}
+                            <div className="h-8 md:h-9 flex items-center justify-center mb-2">
+                                {bar.cue && (
+                                    <span className="px-3 py-1 bg-secondary text-black font-extrabold text-[11px] md:text-sm rounded-md uppercase tracking-wider shadow-[0_0_14px_rgba(34,211,238,0.5)] whitespace-nowrap">
+                                        {bar.cue}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Bar box */}
+                            <div className="flex-1 rounded-lg border-2 border-primary/30 bg-slate-900/40 p-2 md:p-3">
+                                <div
+                                    className="grid gap-1 md:gap-2 h-full"
+                                    style={{ gridTemplateColumns: `repeat(${beatsPerBar}, minmax(0, 1fr))` }}
+                                >
+                                    {Array.from({ length: beatsPerBar }).map((_, beatIdx) => (
+                                        <div key={beatIdx} className="text-center border-l border-slate-800 first:border-l-0 px-1">
+                                            <div className="text-base md:text-2xl font-semibold text-secondary/90 break-words leading-snug min-h-[1.4em]">
+                                                {bar.beats?.[beatIdx] || <span className="text-slate-700">·</span>}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                    {/* Pad the last line so bar widths stay consistent */}
+                    {lineBars.length < BAR_LINE_SIZE &&
+                        Array.from({ length: BAR_LINE_SIZE - lineBars.length }).map((_, padIdx) => (
+                            <div key={`pad-${padIdx}`} className="hidden md:block" />
+                        ))}
+                </div>
+            ))}
+        </div>
+    );
 };
 
 const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActive, broadcastMessage, onSendBroadcast, onDismissBroadcast }) => {
@@ -216,7 +275,6 @@ const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActiv
         const parts = text.split(/(\|[^*]+\||\\[[^\\]]+\\])/g);
 
         return parts.map((part, i) => {
-            // Tag Logic: |DROP|
             if (part.startsWith('|') && part.endsWith('|')) {
                 const content = part.slice(1, -1);
                 return (
@@ -229,7 +287,6 @@ const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActiv
                 );
             }
 
-            // Chord Logic: [Am]
             if (part.startsWith('[') && part.endsWith(']')) {
                 const chord = part.slice(1, -1);
                 return (
@@ -254,7 +311,7 @@ const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActiv
                     <p className="text-2xl text-slate-500">No songs in setlist</p>
                     <button
                         onClick={onExit}
-                        className="mt-6 px-6 py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary/80"
+                        className="mt-6 px-6 py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary/80 cursor-pointer"
                     >
                         Exit Performance View
                     </button>
@@ -265,6 +322,7 @@ const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActiv
 
     const myPersonalNote = songPersonalNotes?.[currentSong.id] || '';
     const singerNote = role === 'singer' ? parseSingerNote(myPersonalNote) : null;
+    const hasBarView = role === 'singer' && singerNote?.bars?.length > 0;
 
     return (
         <div className="fixed inset-0 bg-black z-50 flex flex-col text-white overflow-hidden">
@@ -283,7 +341,7 @@ const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActiv
                         role === 'keyboard' && (
                             <button
                                 onClick={() => onToggleActive(currentSong.id)}
-                                className="flex items-center gap-2 px-4 py-2 bg-primary/20 hover:bg-primary/40 border border-primary/50 text-white rounded-lg transition-all hover:scale-105 font-bold shadow-[0_0_15px_rgba(167,139,250,0.3)]"
+                                className="flex items-center gap-2 px-4 py-2 bg-primary/20 hover:bg-primary/40 border border-primary/50 text-white rounded-lg transition-all hover:scale-105 font-bold shadow-[0_0_15px_rgba(167,139,250,0.3)] cursor-pointer"
                                 title="Make this the active live song"
                             >
                                 <Play size={18} fill="currentColor" />
@@ -294,7 +352,7 @@ const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActiv
                 </div>
                 <button
                     onClick={onExit}
-                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors font-bold"
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors font-bold cursor-pointer"
                     title="Exit to Edit Mode (ESC)"
                 >
                     <Edit3 size={18} />
@@ -307,10 +365,7 @@ const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActiv
                 <div className="max-w-8xl mx-auto space-y-8 md:space-y-12">
                     {/* Song Title & Metadata */}
                     <div className="text-center">
-                        <h1 className={`text-5xl md:text-7xl lg:text-8xl font-bold mb-6 md:mb-8 transition-all ${isCurrentSongLive
-                            ? 'bg-secondary bg-clip-text text-transparent scale-105'
-                            : 'bg-secondary bg-clip-text text-transparent'
-                            }`}>
+                        <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 md:mb-8 bg-secondary bg-clip-text text-transparent">
                             {currentSong.title}
                         </h1>
 
@@ -344,20 +399,6 @@ const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActiv
                                 </div>
                             )}
                         </div>
-
-                        {/* Performance Cues */}
-                        {/* {currentSong.cues && currentSong.cues.length > 0 && (
-                            <div className="flex flex-wrap gap-3 md:gap-4 justify-center mt-6 md:mt-8">
-                                {currentSong.cues.map((cue, idx) => (
-                                    <span
-                                        key={idx}
-                                        className="px-5 md:px-8 py-3 md:py-4 bg-secondary text-black font-extrabold rounded-xl text-lg md:text-2xl uppercase tracking-wider shadow-lg"
-                                    >
-                                        {cue}
-                                    </span>
-                                ))}
-                            </div>
-                        )} */}
                     </div>
 
                     {/* Notes Section - Different Layout Depending on Role */}
@@ -371,13 +412,13 @@ const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActiv
                             <div className="flex gap-4 mb-6 md:mb-8 border-b border-slate-800 pb-4">
                                 <button
                                     onClick={() => setSingerTab('lyrics')}
-                                    className={`text-lg md:text-xl font-bold uppercase tracking-widest px-4 py-2 rounded-lg transition-colors ${singerTab === 'lyrics' ? 'bg-secondary/20 text-secondary border border-secondary/50' : 'text-slate-500 hover:text-slate-300'}`}
+                                    className={`text-lg md:text-xl font-bold uppercase tracking-widest px-4 py-2 rounded-lg transition-colors cursor-pointer ${singerTab === 'lyrics' ? 'bg-secondary/20 text-secondary border border-secondary/50' : 'text-slate-500 hover:text-slate-300'}`}
                                 >
                                     Lyrics
                                 </button>
                                 <button
                                     onClick={() => setSingerTab('flow')}
-                                    className={`text-lg md:text-xl font-bold uppercase tracking-widest px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${singerTab === 'flow' ? 'bg-primary/20 text-primary border border-primary/50' : 'text-slate-500 hover:text-slate-300'}`}
+                                    className={`text-lg md:text-xl font-bold uppercase tracking-widest px-4 py-2 rounded-lg transition-colors flex items-center gap-2 cursor-pointer ${singerTab === 'flow' ? 'bg-primary/20 text-primary border border-primary/50' : 'text-slate-500 hover:text-slate-300'}`}
                                 >
                                     <Music size={20} /> Flow of Song
                                 </button>
@@ -399,7 +440,9 @@ const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActiv
                                         </div>
                                     )}
 
-                                    {singerNote && singerNote.lyrics ? (
+                                    {hasBarView ? (
+                                        <BarLyricsView bars={singerNote.bars} timeSig={currentSong.timeSig} />
+                                    ) : singerNote && singerNote.lyrics ? (
                                         <div className="text-2xl md:text-4xl leading-relaxed whitespace-pre-wrap text-secondary/90">
                                             {singerNote.lyrics}
                                         </div>
@@ -488,7 +531,7 @@ const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActiv
                 <button
                     onClick={goPrevious}
                     disabled={currentIndex === 0}
-                    className="flex items-center gap-2 px-4 md:px-8 py-3 md:py-4 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg font-bold transition-colors text-sm md:text-lg"
+                    className="flex items-center gap-2 px-4 md:px-8 py-3 md:py-4 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg font-bold transition-colors text-sm md:text-lg cursor-pointer"
                 >
                     <ChevronLeft size={24} />
                     <span className="hidden md:inline">Previous</span>
@@ -501,7 +544,7 @@ const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActiv
                 <button
                     onClick={goNext}
                     disabled={currentIndex === songs.length - 1}
-                    className="flex items-center gap-2 px-4 md:px-8 py-3 md:py-4 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg font-bold transition-colors text-sm md:text-lg"
+                    className="flex items-center gap-2 px-4 md:px-8 py-3 md:py-4 bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg font-bold transition-colors text-sm md:text-lg cursor-pointer"
                 >
                     <span className="hidden md:inline">Next</span>
                     <ChevronRight size={24} />
