@@ -87,7 +87,11 @@ const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteS
                     {song.isActive ? <Play size={18} className="md:w-6 md:h-6" fill="currentColor" /> : <Circle size={18} className="md:w-6 md:h-6" />}
                 </button>
                 <button
-                    onClick={() => onDeleteSong(song.id)}
+                    onClick={() => {
+                        if (window.confirm(`Are you sure you want to delete "${song.title || 'this song'}"?`)) {
+                            onDeleteSong(song.id);
+                        }
+                    }}
                     className="p-2 md:p-3 text-slate-600 hover:text-red-500 transition-colors"
                 >
                     <Trash2 size={18} className="md:w-6 md:h-6" />
@@ -462,7 +466,8 @@ const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSo
                 setNewlyAddedSongId(newSong.id);
                 const isVisible = filterCategory === 'All' || newSong.category === filterCategory;
                 if (isVisible) {
-                    scrollToBottom();
+                    // scrollToBottom() removed here to prevent scroll jumps when someone else adds a song while we're typing.
+                    // Local additions already trigger scrollToBottom() in handleAddSongClick etc.
                 }
                 const timer = setTimeout(() => {
                     setNewlyAddedSongId(null);
@@ -504,7 +509,7 @@ const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSo
         processedSongs = [...processedSongs].sort((a, b) => a.title.localeCompare(b.title));
     }
 
-    const canReorder = !isSortMode && filterCategory === 'All' && sortBy === 'original';
+    const canReorder = false; // Disabled in normal view to prevent mobile keyboard scroll jump
 
     const scrollToBottom = () => {
         setTimeout(() => {
@@ -728,37 +733,20 @@ const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSo
                         />
                     ) : (
                         <div ref={listRef} className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
-                            {canReorder ? (
-                                <Reorder.Group axis="y" values={songs} onReorder={onReorderSongs} className="space-y-4">
-                                    {processedSongs.map((song) => (
-                                        <SortableSongItem
-                                            key={song.id}
-                                            song={song}
-                                            index={song.originalIndex}
-                                            onUpdateSong={onUpdateSong}
-                                            onDeleteSong={onDeleteSong}
-                                            onToggleActive={onToggleActive}
-                                            canReorder={true}
-                                            isNewlyAdded={newlyAddedSongId === song.id}
-                                        />
-                                    ))}
-                                </Reorder.Group>
-                            ) : (
-                                <div className="space-y-4">
-                                    {processedSongs.map((song) => (
-                                        <SortableSongItem
-                                            key={song.id}
-                                            song={song}
-                                            index={song.originalIndex}
-                                            onUpdateSong={onUpdateSong}
-                                            onDeleteSong={onDeleteSong}
-                                            onToggleActive={onToggleActive}
-                                            canReorder={false}
-                                            isNewlyAdded={newlyAddedSongId === song.id}
-                                        />
-                                    ))}
-                                </div>
-                            )}
+                            <div className="space-y-4">
+                                {processedSongs.map((song) => (
+                                    <SortableSongItem
+                                        key={song.id}
+                                        song={song}
+                                        index={song.originalIndex}
+                                        onUpdateSong={onUpdateSong}
+                                        onDeleteSong={onDeleteSong}
+                                        onToggleActive={onToggleActive}
+                                        canReorder={false}
+                                        isNewlyAdded={newlyAddedSongId === song.id}
+                                    />
+                                ))}
+                            </div>
                         </div>
                     )
                 ) : (

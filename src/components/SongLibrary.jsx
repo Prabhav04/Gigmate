@@ -312,7 +312,11 @@ const SongLibrary = ({
                                                         )}
                                                     </button>
                                                     <button
-                                                        onClick={() => onDeleteLibrarySong(song.id)}
+                                                        onClick={() => {
+                                                            if (window.confirm(`Are you sure you want to delete "${song.title || 'this song'}" from the library?`)) {
+                                                                onDeleteLibrarySong(song.id);
+                                                            }
+                                                        }}
                                                         className="p-2 border border-red-500/30 hover:border-red-500 hover:bg-red-500/10 text-red-400 rounded-lg transition-all"
                                                         title="Delete from Library"
                                                     >
