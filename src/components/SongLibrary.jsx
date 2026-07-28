@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Search, Plus, Trash2, Music, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { DebouncedInput, DebouncedTextarea } from './DebouncedInputs';
+import ConfirmDeleteModal from './ConfirmDeleteModal';
 
 const SongLibrary = ({ 
     isOpen, 
@@ -20,6 +21,7 @@ const SongLibrary = ({
     const [expandedSongId, setExpandedSongId] = useState(null);
     const [addedSongsMap, setAddedSongsMap] = useState({}); // Tracking visual "Added" state momentarily
     const [newlyAddedLibSongId, setNewlyAddedLibSongId] = useState(null);
+    const [libSongToDelete, setLibSongToDelete] = useState(null);
     const isFirstFieldRender = React.useRef(true);
     const listContainerRef = React.useRef(null);
 
@@ -98,6 +100,17 @@ const SongLibrary = ({
 
     return (
         <>
+            {libSongToDelete && (
+                <ConfirmDeleteModal
+                    title="Delete Library Song?"
+                    itemName={libSongToDelete.title || 'this song'}
+                    onClose={() => setLibSongToDelete(null)}
+                    onConfirm={() => {
+                        onDeleteLibrarySong(libSongToDelete.id);
+                        setLibSongToDelete(null);
+                    }}
+                />
+            )}
             {/* Backdrop */}
             <div 
                 className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] animate-fade-in"
@@ -312,11 +325,7 @@ const SongLibrary = ({
                                                         )}
                                                     </button>
                                                     <button
-                                                        onClick={() => {
-                                                            if (window.confirm(`Are you sure you want to delete "${song.title || 'this song'}" from the library?`)) {
-                                                                onDeleteLibrarySong(song.id);
-                                                            }
-                                                        }}
+                                                        onClick={() => setLibSongToDelete(song)}
                                                         className="p-2 border border-red-500/30 hover:border-red-500 hover:bg-red-500/10 text-red-400 rounded-lg transition-all"
                                                         title="Delete from Library"
                                                     >

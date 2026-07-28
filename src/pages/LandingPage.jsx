@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Music, Users, ArrowRight, Clock, Trash2, Plus, Copy, Check, X, ListMusic } from 'lucide-react';
+import { Music, Users, ArrowRight, Clock, Trash2, Plus, Copy, Check, X, ListMusic, Edit2 } from 'lucide-react';
 import { STUDIOS } from '../constants/studios';
+import { db } from '../lib/firebase';
+import { collection, getDocs, query, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 
 // Converts a human name to a URL-safe slug with a short random suffix
 const generateSetlistId = (name) => {
@@ -126,35 +129,146 @@ const NewSetlistModal = ({ onClose, onCreate }) => {
     );
 };
 
+// ─── Rename Setlist Modal ─────────────────────────────────────────────────────────────
+const RenameSetlistModal = ({ session, onClose, onRename }) => {
+    const [name, setName] = useState(session.name === 'Untitled' ? '' : session.name);
+    const [isRenaming, setIsRenaming] = useState(false);
+    const inputRef = useRef(null);
+
+    useEffect(() => {
+        const t = setTimeout(() => {
+            inputRef.current?.focus();
+            inputRef.current?.select();
+        }, 100);
+        return () => clearTimeout(t);
+    }, []);
+
+    const handleRename = async () => {
+        const trimmed = name.trim();
+        if (!trimmed) {
+            inputRef.current?.focus();
+            return;
+        }
+        setIsRenaming(true);
+        await onRename(session.id, trimmed);
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') handleRename();
+        if (e.key === 'Escape') onClose();
+    };
+
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
+            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+        >
+            <div
+                className="relative w-full max-w-md rounded-2xl border border-slate-700/80 p-8 shadow-2xl animate-fade-in-up"
+                style={{
+                    background: 'linear-gradient(135deg, rgba(15,15,20,0.98) 0%, rgba(20,18,35,0.98) 100%)',
+                    boxShadow: '0 0 60px rgba(167,139,250,0.15), 0 0 120px rgba(0,0,0,0.8)',
+                }}
+            >
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 p-1.5 text-slate-500 hover:text-white hover:bg-white/10 rounded-full transition-all"
+                >
+                    <X size={18} />
+                </button>
+
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center"
+                        style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)' }}>
+                        <Edit2 size={22} className="text-white" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-white leading-tight">Rename Setlist</h2>
+                        <p className="text-sm text-slate-400">Enter a new name below</p>
+                    </div>
+                </div>
+
+                <div className="mb-6">
+                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+                        Setlist Name
+                    </label>
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="e.g. Wedding Gig — April 2026"
+                        maxLength={60}
+                        className="w-full bg-black/50 border border-slate-700 focus:border-primary focus:outline-none rounded-xl px-4 py-3 text-white text-base placeholder:text-slate-600 transition-colors"
+                    />
+                </div>
+
+                <button
+                    onClick={handleRename}
+                    disabled={isRenaming || !name.trim()}
+                    className="w-full py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2
+                        disabled:opacity-40 disabled:cursor-not-allowed
+                        hover:scale-[1.02] active:scale-[0.98]"
+                    style={{
+                        background: name.trim()
+                            ? 'linear-gradient(135deg, #7c3aed, #4f46e5)'
+                            : 'rgba(124,58,237,0.3)',
+                        color: 'white',
+                        boxShadow: name.trim() ? '0 0 24px rgba(124,58,237,0.4)' : 'none',
+                    }}
+                >
+                    {isRenaming ? (
+                        <span className="animate-pulse">Renaming…</span>
+                    ) : (
+                        <>
+                            <Check size={16} /> Save Name
+                        </>
+                    )}
+                </button>
+            </div>
+        </div>
+    );
+};
+
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 const LandingPage = () => {
     const navigate = useNavigate();
     const [savedSessions, setSavedSessions] = useState([]);
     const [copiedId, setCopiedId] = useState(null);
     const [showNewSetlistModal, setShowNewSetlistModal] = useState(false);
+    const [sessionToDelete, setSessionToDelete] = useState(null);
+    const [sessionToRename, setSessionToRename] = useState(null);
 
     useEffect(() => {
-        const loadSessions = () => {
+        const loadSessions = async () => {
             try {
-                const raw = JSON.parse(localStorage.getItem('gigmate_sessions') || '[]');
-                const sessions = raw.map(item => {
-                    if (typeof item === 'string') {
-                        return { id: item, name: 'Joined Session', date: new Date().toISOString() };
-                    }
-                    return {
-                        id: item.id || 'unknown',
-                        name: item.name || 'Untitled',
-                        date: item.date || new Date().toISOString()
-                    };
+                const sessionsQuery = query(collection(db, 'sessions'), orderBy('createdAt', 'desc'));
+                const snapshot = await getDocs(sessionsQuery);
+                const fetchedSessions = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    fetchedSessions.push({
+                        id: doc.id,
+                        name: data.name || 'Untitled',
+                        date: data.createdAt ? data.createdAt.toDate().toISOString() : new Date().toISOString()
+                    });
                 });
-                const validSessions = sessions.filter(s => s && s.id);
-                setSavedSessions(validSessions);
-                if (JSON.stringify(raw) !== JSON.stringify(validSessions)) {
-                    localStorage.setItem('gigmate_sessions', JSON.stringify(validSessions));
-                }
+                setSavedSessions(fetchedSessions);
             } catch (e) {
-                console.error("Failed to load sessions", e);
-                localStorage.setItem('gigmate_sessions', '[]');
+                console.error("Failed to load sessions from Firestore", e);
+                try {
+                    const raw = JSON.parse(localStorage.getItem('gigmate_sessions') || '[]');
+                    const validSessions = raw.map(item => ({
+                        id: typeof item === 'string' ? item : (item.id || 'unknown'),
+                        name: typeof item === 'string' ? 'Joined Session' : (item.name || 'Untitled'),
+                        date: typeof item === 'string' ? new Date().toISOString() : (item.date || new Date().toISOString())
+                    })).filter(s => s && s.id);
+                    setSavedSessions(validSessions);
+                } catch (err) {
+                    setSavedSessions([]);
+                }
             }
         };
         loadSessions();
@@ -182,11 +296,27 @@ const LandingPage = () => {
         setSavedSessions(updated);
     };
 
-    const deleteSession = (e, id) => {
-        e.stopPropagation();
+    const deleteSession = async (id) => {
         const updated = savedSessions.filter(s => s.id !== id);
         setSavedSessions(updated);
-        localStorage.setItem('gigmate_sessions', JSON.stringify(updated));
+        try {
+            await deleteDoc(doc(db, 'sessions', id));
+        } catch (err) {
+            console.error("Failed to delete from Firestore", err);
+        }
+        setSessionToDelete(null);
+    };
+
+    const renameSession = async (id, newName) => {
+        try {
+            await updateDoc(doc(db, 'sessions', id), {
+                name: newName
+            });
+            setSavedSessions(prev => prev.map(s => s.id === id ? { ...s, name: newName } : s));
+        } catch (err) {
+            console.error("Failed to rename session", err);
+        }
+        setSessionToRename(null);
     };
 
     const copySessionLink = (e, id) => {
@@ -207,6 +337,25 @@ const LandingPage = () => {
                         setShowNewSetlistModal(false);
                         createSetlist(name);
                     }}
+                />
+            )}
+
+            {/* Confirm Delete Modal */}
+            {sessionToDelete && (
+                <ConfirmDeleteModal 
+                    title="Delete Setlist?"
+                    itemName={sessionToDelete.name}
+                    onClose={() => setSessionToDelete(null)}
+                    onConfirm={() => deleteSession(sessionToDelete.id)}
+                />
+            )}
+
+            {/* Rename Setlist Modal */}
+            {sessionToRename && (
+                <RenameSetlistModal 
+                    session={sessionToRename}
+                    onClose={() => setSessionToRename(null)}
+                    onRename={renameSession}
                 />
             )}
 
@@ -250,15 +399,15 @@ const LandingPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-5xl px-4">
 
                     {/* Recent Gigs */}
-                    <div className="md:col-span-2 bg-surface/30 border border-glass-border rounded-2xl p-6 overflow-hidden">
-                        <div className="flex justify-between items-center mb-6">
+                    <div className="md:col-span-2 bg-surface/30 border border-glass-border rounded-2xl p-6 flex flex-col max-h-[600px]">
+                        <div className="flex justify-between items-center mb-6 shrink-0">
                             <h3 className="text-xl font-bold flex items-center gap-2">
-                                <Clock size={20} className="text-secondary" /> Recent Gigs
+                                <ListMusic size={20} className="text-secondary" /> All Created Setlists
                             </h3>
                         </div>
 
                         {savedSessions.length > 0 ? (
-                            <div className="space-y-3">
+                            <div className="space-y-3 overflow-y-auto pr-2 pb-4 flex-1">
                                 {savedSessions.map((session) => (
                                     <div
                                         key={session.id}
@@ -279,6 +428,13 @@ const LandingPage = () => {
 
                                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
                                             <button
+                                                onClick={(e) => { e.stopPropagation(); setSessionToRename(session); }}
+                                                className="p-2 text-slate-500 hover:text-primary transition-colors"
+                                                title="Rename Setlist"
+                                            >
+                                                <Edit2 size={16} />
+                                            </button>
+                                            <button
                                                 onClick={(e) => copySessionLink(e, session.id)}
                                                 className="p-2 text-slate-500 hover:text-white transition-colors"
                                                 title="Copy Link"
@@ -286,9 +442,9 @@ const LandingPage = () => {
                                                 {copiedId === session.id ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
                                             </button>
                                             <button
-                                                onClick={(e) => deleteSession(e, session.id)}
+                                                onClick={(e) => { e.stopPropagation(); setSessionToDelete(session); }}
                                                 className="p-2 text-slate-600 hover:text-red-500 transition-colors"
-                                                title="Remove from history"
+                                                title="Delete setlist"
                                             >
                                                 <Trash2 size={16} />
                                             </button>

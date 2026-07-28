@@ -3,9 +3,10 @@ import { Reorder, useDragControls, AnimatePresence, motion } from 'framer-motion
 import { GripVertical, Play, Circle, Plus, Trash2, FileText, ListOrdered, X, BookOpen, Sliders, ChevronDown, ChevronUp } from 'lucide-react';
 import Metronome from './Metronome';
 import { DebouncedInput, DebouncedTextarea } from './DebouncedInputs';
+import ConfirmDeleteModal from './ConfirmDeleteModal';
 
 // ─── Framer-Motion item for the FULL edit view ───────────────────────────────
-const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteSong, canReorder = true, isNewlyAdded = false }) => {
+const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteSong, onDeleteRequest, canReorder = true, isNewlyAdded = false }) => {
     const dragControls = useDragControls();
 
     const content = (
@@ -87,11 +88,7 @@ const SortableSongItem = ({ song, index, onUpdateSong, onToggleActive, onDeleteS
                     {song.isActive ? <Play size={18} className="md:w-6 md:h-6" fill="currentColor" /> : <Circle size={18} className="md:w-6 md:h-6" />}
                 </button>
                 <button
-                    onClick={() => {
-                        if (window.confirm(`Are you sure you want to delete "${song.title || 'this song'}"?`)) {
-                            onDeleteSong(song.id);
-                        }
-                    }}
+                    onClick={() => onDeleteRequest ? onDeleteRequest(song) : onDeleteSong(song.id)}
                     className="p-2 md:p-3 text-slate-600 hover:text-red-500 transition-colors"
                 >
                     <Trash2 size={18} className="md:w-6 md:h-6" />
@@ -446,6 +443,7 @@ const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSo
     const [sortBy, setSortBy] = useState('original');
     const listRef = useRef(null);
     const [newlyAddedSongId, setNewlyAddedSongId] = useState(null);
+    const [songToDelete, setSongToDelete] = useState(null);
     const prevSongsLength = useRef(songs?.length || 0);
     const isFirstLoad = useRef(true);
 
@@ -555,7 +553,18 @@ const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSo
     };
 
     return (
-        <div className="flex flex-col h-full gap-4">
+        <div className="flex flex-col h-full gap-4 relative">
+            {songToDelete && (
+                <ConfirmDeleteModal
+                    title="Delete Song?"
+                    itemName={songToDelete.title || 'this song'}
+                    onClose={() => setSongToDelete(null)}
+                    onConfirm={() => {
+                        onDeleteSong(songToDelete.id);
+                        setSongToDelete(null);
+                    }}
+                />
+            )}
             {/* Tools Collapsible Section */}
             <div className="flex flex-col gap-2 shrink-0">
                 <button
@@ -741,6 +750,7 @@ const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSo
                                         index={song.originalIndex}
                                         onUpdateSong={onUpdateSong}
                                         onDeleteSong={onDeleteSong}
+                                        onDeleteRequest={setSongToDelete}
                                         onToggleActive={onToggleActive}
                                         canReorder={false}
                                         isNewlyAdded={newlyAddedSongId === song.id}
