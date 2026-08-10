@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Reorder, useDragControls, AnimatePresence, motion } from 'framer-motion';
-import { GripVertical, Play, Circle, Plus, Trash2, FileText, ListOrdered, X, BookOpen, Sliders, ChevronDown, ChevronUp } from 'lucide-react';
+import { GripVertical, Play, Circle, Plus, Trash2, FileText, ListOrdered, X, BookOpen, Lightbulb, Sliders, ChevronDown, ChevronUp } from 'lucide-react';
 import Metronome from './Metronome';
 import { DebouncedInput, DebouncedTextarea } from './DebouncedInputs';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
@@ -434,7 +434,7 @@ const CompactSortView = ({ songs, onReorderSongs }) => {
 
 // ─── Main MasterBoard ─────────────────────────────────────────────────────────
 
-const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSongs, onToggleActive, onImportSongs, onToggleLibrary }) => {
+const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSongs, onToggleActive, onImportSongs, onToggleLibrary, onToggleSandbox }) => {
     const [showImport, setShowImport] = useState(false);
     const [showTools, setShowTools] = useState(false);
     const [isSortMode, setIsSortMode] = useState(false);
@@ -600,14 +600,24 @@ const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSo
                                         hasActiveSong={songs.some(s => s.isActive)}
                                     />
                                 </div>
-                                <button
-                                    onClick={onToggleLibrary}
-                                    className="lg:w-48 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-lg p-3 md:p-4 flex items-center justify-center gap-2 text-white font-bold transition-all hover:border-slate-500 cursor-pointer shadow-md"
-                                    title="Open Song Library"
-                                >
-                                    <BookOpen className="w-5 h-5 text-primary" />
-                                    <span>Song Library</span>
-                                </button>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                    <button
+                                        onClick={onToggleLibrary}
+                                        className="flex-1 sm:w-40 lg:w-48 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-lg p-3 md:p-4 flex items-center justify-center gap-2 text-white font-bold transition-all hover:border-slate-500 cursor-pointer shadow-md"
+                                        title="Open Song Library"
+                                    >
+                                        <BookOpen className="w-5 h-5 text-primary" />
+                                        <span>Song Library</span>
+                                    </button>
+                                    <button
+                                        onClick={onToggleSandbox}
+                                        className="flex-1 sm:w-40 lg:w-48 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-lg p-3 md:p-4 flex items-center justify-center gap-2 text-white font-bold transition-all hover:border-slate-500 cursor-pointer shadow-md"
+                                        title="Open Sandbox"
+                                    >
+                                        <Lightbulb className="w-5 h-5 text-amber-400" />
+                                        <span>Sandbox</span>
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     )}

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronUp, Music, Minimize2, Maximize2, Mic, Eye, BookOpen } from 'lucide-react';
+import { ChevronDown, ChevronUp, Music, Minimize2, Maximize2, Mic, Eye, BookOpen, Lightbulb } from 'lucide-react';
 import Metronome from './Metronome';
 import LyricsView from './LyricsView';
 import { DebouncedTextarea } from './DebouncedInputs';
 
-const PlayerBoard = ({ role, songs, personalNotes, onUpdatePersonal, isSaving, songPersonalNotes, onUpdateSongPersonal, onToggleLibrary }) => {
+const PlayerBoard = ({ role, songs, personalNotes, onUpdatePersonal, isSaving, songPersonalNotes, onUpdateSongPersonal, onToggleLibrary, onToggleSandbox }) => {
     const [notesCollapsed, setNotesCollapsed] = useState(false);
     const [showLyrics, setShowLyrics] = useState(false);
     const [filterCategory, setFilterCategory] = useState('All');
@@ -170,6 +170,15 @@ const PlayerBoard = ({ role, songs, personalNotes, onUpdatePersonal, isSaving, s
                         <BookOpen className="w-4 h-4 text-primary" />
                         <span className="hidden sm:inline">Song Library</span>
                         <span className="sm:hidden">Library</span>
+                    </button>
+                    <button
+                        onClick={onToggleSandbox}
+                        className="bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-lg h-10 px-3 md:px-4 flex items-center justify-center gap-2 text-white font-bold text-sm transition-all hover:border-slate-500 cursor-pointer shadow-md shrink-0"
+                        title="Open Sandbox"
+                    >
+                        <Lightbulb className="w-4 h-4 text-amber-400" />
+                        <span className="hidden sm:inline">Sandbox</span>
+                        <span className="sm:hidden">Idea</span>
                     </button>
                 </div>
 

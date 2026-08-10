@@ -4,6 +4,7 @@ import RoleSelection from '../components/RoleSelection';
 import MasterBoard from '../components/MasterBoard';
 import PlayerBoard from '../components/PlayerBoard';
 import SongLibrary from '../components/SongLibrary';
+import SandboxDrawer from '../components/SandboxDrawer';
 import { useSession } from '../hooks/useSession';
 import { Share2, ArrowLeft, Maximize } from 'lucide-react';
 import PerformanceMode from '../components/PerformanceMode';
@@ -17,6 +18,7 @@ const SessionSpace = () => {
     const [role, setRole] = useState(null);
     const [isPerformanceMode, setIsPerformanceMode] = useState(false);
     const [showLibrary, setShowLibrary] = useState(false);
+    const [showSandbox, setShowSandbox] = useState(false);
     const { stageMode, toggleStageMode } = useStageMode();
 
     const {
@@ -46,7 +48,14 @@ const SessionSpace = () => {
         addLibrarySong,
         updateLibrarySong,
         deleteLibrarySong,
-        addSongToSetlist
+        addSongToSetlist,
+        sandbox,
+        sandboxLoading,
+        hasMoreSandbox,
+        fetchSandbox,
+        addSandboxSong,
+        updateSandboxSong,
+        deleteSandboxSong
     } = useSession(sessionId, role, sessionName);
 
     const copyInvite = () => {
@@ -140,6 +149,7 @@ const SessionSpace = () => {
                         isSaving={isSaving}
                         onImportSongs={importSongs}
                         onToggleLibrary={() => setShowLibrary(!showLibrary)}
+                        onToggleSandbox={() => setShowSandbox(!showSandbox)}
                     />
                 ) : (
                     <PlayerBoard
@@ -152,6 +162,7 @@ const SessionSpace = () => {
                         songPersonalNotes={songPersonalNotes}
                         onUpdateSongPersonal={updateSongPersonalNote}
                         onToggleLibrary={() => setShowLibrary(!showLibrary)}
+                        onToggleSandbox={() => setShowSandbox(!showSandbox)}
                     />
                 )}
             </main>
@@ -184,6 +195,22 @@ const SessionSpace = () => {
                 onAddLibrarySong={addLibrarySong}
                 onUpdateLibrarySong={updateLibrarySong}
                 onDeleteLibrarySong={deleteLibrarySong}
+                onAddSongToSetlist={addSongToSetlist}
+            />
+
+            {/* Sandbox Drawer */}
+            <SandboxDrawer
+                isOpen={showSandbox}
+                onClose={() => setShowSandbox(false)}
+                role={role}
+                sandbox={sandbox}
+                sandboxLoading={sandboxLoading}
+                hasMoreSandbox={hasMoreSandbox}
+                onFetchSandbox={fetchSandbox}
+                songs={songs}
+                onAddSandboxSong={addSandboxSong}
+                onUpdateSandboxSong={updateSandboxSong}
+                onDeleteSandboxSong={deleteSandboxSong}
                 onAddSongToSetlist={addSongToSetlist}
             />
         </div>

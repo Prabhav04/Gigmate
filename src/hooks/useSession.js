@@ -53,6 +53,13 @@ export const useSession = (sessionId, role, sessionName) => {
   const lastVisibleRef = useRef(null);
   const libraryLoadingRef = useRef(false);
   
+  const [sandbox, setSandbox] = useState([]); // Array of sandbox songs
+  const [sandboxLoading, setSandboxLoading] = useState(false);
+  const [hasMoreSandbox, setHasMoreSandbox] = useState(true);
+  const hasMoreSandboxRef = useRef(true);
+  const sandboxLastVisibleRef = useRef(null);
+  const sandboxLoadingRef = useRef(false);
+  
   const [broadcastMessage, setBroadcastMessage] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState(null);
@@ -357,6 +364,79 @@ export const useSession = (sessionId, role, sessionName) => {
       }
   }, [sessionId]);
 
+  // Lazy loading & searching from sandbox subcollection
+  const fetchSandbox = useCallback(async (searchQuery = '', isLoadMore = false) => {
+      if (!isLoadMore) {
+          sandboxLastVisibleRef.current = null;
+          hasMoreSandboxRef.current = true;
+          setHasMoreSandbox(true);
+      } else if (!hasMoreSandboxRef.current || !sandboxLastVisibleRef.current) {
+          return;
+      }
+      
+      if (sandboxLoadingRef.current) return;
+      sandboxLoadingRef.current = true;
+      setSandboxLoading(true);
+
+      try {
+          const searchLower = searchQuery.toLowerCase().trim();
+          let q;
+
+          if (searchLower) {
+              q = query(
+                  collection(db, 'sandbox'),
+                  orderBy('title_lowercase'),
+                  startAt(searchLower),
+                  endAt(searchLower + '\uf8ff'),
+                  limit(20)
+              );
+          } else {
+              q = query(
+                  collection(db, 'sandbox'),
+                  orderBy('title_lowercase'),
+                  limit(20)
+              );
+          }
+
+          if (isLoadMore && sandboxLastVisibleRef.current) {
+              q = query(q, startAfter(sandboxLastVisibleRef.current));
+          }
+
+          const querySnap = await getDocs(q);
+          const newSongs = [];
+          querySnap.forEach((doc) => {
+              newSongs.push({ id: doc.id, ...doc.data() });
+          });
+
+          const lastDoc = querySnap.docs[querySnap.docs.length - 1] || null;
+          sandboxLastVisibleRef.current = lastDoc;
+          
+          const hasMore = querySnap.docs.length === 20;
+          hasMoreSandboxRef.current = hasMore;
+          setHasMoreSandbox(hasMore);
+
+          if (isLoadMore) {
+              setSandbox(prev => {
+                  const merged = [...prev];
+                  newSongs.forEach(song => {
+                      if (!merged.some(s => s.id === song.id)) {
+                          merged.push(song);
+                      }
+                  });
+                  return merged;
+              });
+          } else {
+              setSandbox(newSongs);
+          }
+      } catch (err) {
+          console.error("Error fetching sandbox:", err);
+          setError("Sandbox Fetch Failed");
+      } finally {
+          sandboxLoadingRef.current = false;
+          setSandboxLoading(false);
+      }
+  }, [sessionId]);
+
   const updateMasterNotes = async (text) => {
     setMasterNotes(text);
     setIsSaving(true);
@@ -627,6 +707,53 @@ export const useSession = (sessionId, role, sessionName) => {
       }
   };
 
+  const addSandboxSong = async () => {
+    const songId = 'sandbox-' + Date.now();
+    const newSandboxSong = {
+        title: 'New Idea',
+        title_lowercase: 'new idea',
+        notes: ''
+    };
+    
+    try {
+        await setDoc(doc(db, 'sandbox', songId), newSandboxSong);
+        setSandbox(prev => [{ id: songId, ...newSandboxSong }, ...prev]); // Optimistic
+        return songId;
+    } catch (e) {
+        console.error(e);
+        setError("Add Sandbox Song Failed");
+        return null;
+    }
+  };
+
+  const updateSandboxSong = async (id, field, value) => {
+      // Optimistic
+      setSandbox(prev => prev.map(s => s.id === id ? { ...s, [field]: value, ...(field === 'title' ? { title_lowercase: value.toLowerCase() } : {}) } : s));
+      setIsSaving(true);
+      try {
+        const updateData = { [field]: value };
+        if (field === 'title') {
+            updateData.title_lowercase = value.toLowerCase();
+        }
+        await updateDoc(doc(db, 'sandbox', id), updateData);
+      } catch (e) { 
+          console.error(e); 
+      } finally { 
+          setTimeout(() => setIsSaving(false), 500); 
+      }
+  };
+
+  const deleteSandboxSong = async (id) => {
+      const oldSandbox = [...sandbox];
+      setSandbox(prev => prev.filter(s => s.id !== id)); // Optimistic
+      try {
+        await deleteDoc(doc(db, 'sandbox', id));
+      } catch (e) { 
+          console.error(e); 
+          setSandbox(oldSandbox); // Rollback
+      }
+  };
+
   const addSongToSetlist = async (libSong) => {
       const newSongId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
       const newSong = {
@@ -679,6 +806,13 @@ export const useSession = (sessionId, role, sessionName) => {
     updateLibrarySong,
     deleteLibrarySong,
     addSongToSetlist,
+    sandbox,
+    sandboxLoading,
+    hasMoreSandbox,
+    fetchSandbox,
+    addSandboxSong,
+    updateSandboxSong,
+    deleteSandboxSong,
     isConnected,
     error,
     isSaving
