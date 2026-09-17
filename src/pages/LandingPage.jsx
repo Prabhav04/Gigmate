@@ -342,7 +342,7 @@ const LandingPage = () => {
 
             {/* Confirm Delete Modal */}
             {sessionToDelete && (
-                <ConfirmDeleteModal 
+                <ConfirmDeleteModal
                     title="Delete Setlist?"
                     itemName={sessionToDelete.name}
                     onClose={() => setSessionToDelete(null)}
@@ -352,7 +352,7 @@ const LandingPage = () => {
 
             {/* Rename Setlist Modal */}
             {sessionToRename && (
-                <RenameSetlistModal 
+                <RenameSetlistModal
                     session={sessionToRename}
                     onClose={() => setSessionToRename(null)}
                     onRename={renameSession}
