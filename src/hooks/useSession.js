@@ -41,6 +41,22 @@ const getAllPresetSongs = () => {
     return allPresetSongs;
 };
 
+const parseSingerNoteHelper = (rawNote) => {
+    if (!rawNote) return { lyrics: '', intro: '' };
+    if (typeof rawNote === 'string' && rawNote.trim().startsWith('{')) {
+        try {
+            const parsed = JSON.parse(rawNote);
+            return {
+                lyrics: parsed.lyrics || '',
+                intro: parsed.intro || ''
+            };
+        } catch {
+            return { lyrics: rawNote, intro: '' };
+        }
+    }
+    return { lyrics: rawNote, intro: '' };
+};
+
 export const useSession = (sessionId, role, sessionName) => {
   const [masterNotes, setMasterNotes] = useState("");
   const [personalNotes, setPersonalNotes] = useState("");
@@ -157,6 +173,62 @@ export const useSession = (sessionId, role, sessionName) => {
                     await songsBatch.commit();
                     console.log("Migration: Fixed order/title_lowercase in songs subcollection.");
                 }
+
+                // Self-healing: sync existing lyrics from singer role and songs into library
+                try {
+                    const singerRoleDoc = await getDoc(doc(db, 'sessions', sessionId, 'roles', 'singer'));
+                    const singerNotes = singerRoleDoc.exists() ? (singerRoleDoc.data()?.songNotes || {}) : {};
+                    
+                    const currentSongsSnap = await getDocs(collection(db, 'sessions', sessionId, 'songs'));
+                    const songsWithLyricsMap = new Map();
+                    const songUpdateBatch = writeBatch(db);
+                    let hasSongUpdates = false;
+
+                    currentSongsSnap.forEach(d => {
+                        const sData = d.data();
+                        let lyr = sData.lyrics || '';
+                        let intro = sData.intro || '';
+                        if (!lyr && singerNotes[d.id]) {
+                            const parsed = parseSingerNoteHelper(singerNotes[d.id]);
+                            lyr = parsed.lyrics;
+                            intro = parsed.intro;
+                            hasSongUpdates = true;
+                            songUpdateBatch.update(d.ref, { lyrics: lyr, intro: intro });
+                        }
+                        if ((lyr || intro) && sData.title) {
+                            songsWithLyricsMap.set(sData.title.toLowerCase().trim(), { lyrics: lyr, intro: intro });
+                        }
+                    });
+
+                    if (hasSongUpdates) {
+                        await songUpdateBatch.commit();
+                    }
+
+                    if (songsWithLyricsMap.size > 0) {
+                        const currentLibSnap = await getDocs(collection(db, 'sessions', sessionId, 'library'));
+                        const libUpdateBatch = writeBatch(db);
+                        let hasLibUpdates = false;
+                        currentLibSnap.forEach(ld => {
+                            const ldData = ld.data();
+                            if (!ldData.lyrics && ldData.title) {
+                                const match = songsWithLyricsMap.get(ldData.title.toLowerCase().trim());
+                                if (match && (match.lyrics || match.intro)) {
+                                    hasLibUpdates = true;
+                                    libUpdateBatch.update(ld.ref, {
+                                        lyrics: match.lyrics || '',
+                                        intro: match.intro || ''
+                                    });
+                                }
+                            }
+                        });
+                        if (hasLibUpdates) {
+                            await libUpdateBatch.commit();
+                            console.log("Self-healing: Synced current lyrics to library.");
+                        }
+                    }
+                } catch (err) {
+                    console.warn("Self-healing lyrics sync check error:", err);
+                }
             } else {
                 // 2. Create new session with subcollections
                 const knownStudio = STUDIOS.find(s => s.id === sessionId);
@@ -195,6 +267,8 @@ export const useSession = (sessionId, role, sessionName) => {
                     tempo: s.tempo || '',
                     timeSig: s.timeSig || '',
                     notes: s.notes || '',
+                    lyrics: s.lyrics || '',
+                    intro: s.intro || '',
                     category: s.category || 'Slow Acoustic',
                     cues: s.cues || []
                 }));
@@ -459,6 +533,8 @@ export const useSession = (sessionId, role, sessionName) => {
         tempo: '', 
         timeSig: '', 
         notes: '', 
+        lyrics: '',
+        intro: '',
         cues: [],
         category: 'Slow Acoustic',
         isActive: false,
@@ -553,6 +629,32 @@ export const useSession = (sessionId, role, sessionName) => {
 
       try {
           await setDoc(doc(db, 'sessions', sessionId, 'roles', role), { songNotes: newSongNotes }, { merge: true });
+
+          // If singer role, also update lyrics and intro directly on the setlist song and matching library song
+          if (role === 'singer') {
+              const parsed = parseSingerNoteHelper(text);
+              const lyrics = parsed.lyrics || '';
+              const intro = parsed.intro || '';
+
+              // Update setlist song document
+              const songDocRef = doc(db, 'sessions', sessionId, 'songs', songId);
+              await updateDoc(songDocRef, { lyrics, intro }).catch(e => console.warn(e));
+              setSongs(prev => prev.map(s => s.id === songId ? { ...s, lyrics, intro } : s));
+
+              // Update matching library song document
+              const currentSong = songs.find(s => s.id === songId);
+              if (currentSong && currentSong.title) {
+                  const targetTitle = currentSong.title.toLowerCase().trim();
+                  const matchingLibSong = library.find(l => l.title && l.title.toLowerCase().trim() === targetTitle);
+                  if (matchingLibSong) {
+                      await updateDoc(doc(db, 'sessions', sessionId, 'library', matchingLibSong.id), {
+                          lyrics,
+                          intro
+                      }).catch(e => console.warn(e));
+                      setLibrary(prev => prev.map(l => l.id === matchingLibSong.id ? { ...l, lyrics, intro } : l));
+                  }
+              }
+          }
       } catch (error) {
           console.error("Error syncing song notes:", error);
       } finally {
@@ -664,6 +766,8 @@ export const useSession = (sessionId, role, sessionName) => {
         tempo: '',
         timeSig: '',
         notes: '',
+        lyrics: '',
+        intro: '',
         category: 'Slow Acoustic',
         cues: []
     };
@@ -756,6 +860,8 @@ export const useSession = (sessionId, role, sessionName) => {
 
   const addSongToSetlist = async (libSong) => {
       const newSongId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+      const songLyrics = libSong.lyrics || '';
+      const songIntro = libSong.intro || '';
       const newSong = {
           title: libSong.title || '',
           title_lowercase: (libSong.title || '').toLowerCase(),
@@ -763,6 +869,8 @@ export const useSession = (sessionId, role, sessionName) => {
           tempo: libSong.tempo || '',
           timeSig: libSong.timeSig || '',
           notes: libSong.notes || '',
+          lyrics: songLyrics,
+          intro: songIntro,
           category: libSong.category || 'Slow Acoustic',
           cues: libSong.cues || [],
           isActive: false,
@@ -771,9 +879,29 @@ export const useSession = (sessionId, role, sessionName) => {
       
       const oldSongs = [...songs];
       setSongs(prev => [...prev, { id: newSongId, ...newSong }]); // Optimistic
+
+      const singerNoteStr = JSON.stringify({
+          lyrics: songLyrics,
+          intro: songIntro
+      });
+
+      if (role === 'singer') {
+          setSongPersonalNotes(prev => ({ ...prev, [newSongId]: singerNoteStr }));
+      }
       
       try {
           await setDoc(doc(db, 'sessions', sessionId, 'songs', newSongId), newSong);
+
+          // Sync into singer role doc in Firestore so any singer has it ready
+          if (songLyrics || songIntro) {
+              const singerDocRef = doc(db, 'sessions', sessionId, 'roles', 'singer');
+              const singerDocSnap = await getDoc(singerDocRef);
+              const existingSingerData = singerDocSnap.exists() ? singerDocSnap.data() : {};
+              const existingNotes = existingSingerData.songNotes || {};
+              await setDoc(singerDocRef, {
+                  songNotes: { ...existingNotes, [newSongId]: singerNoteStr }
+              }, { merge: true });
+          }
       } catch (e) {
           console.error(e);
           setSongs(oldSongs); // Rollback

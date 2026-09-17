@@ -126,7 +126,7 @@ const LyricsView = ({ song, onClose }) => {
                     className="max-w-4xl mx-auto whitespace-pre-wrap leading-relaxed text-white"
                     style={{ fontSize: `${fontSize}px`, lineHeight: '1.8' }}
                 >
-                    {renderLyrics(song.notes)}
+                    {renderLyrics(song.lyrics || song.notes)}
                 </div>
             </div>
 

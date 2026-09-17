@@ -1,4 +1,5 @@
 import React from 'react';
+import { ArrowLeft } from 'lucide-react';
 
 const roles = [
     { id: 'keyboard', label: 'Keyboardist (Leader)', imgSrc: '/Icons-png/key.png', theme: 'from-emerald-500/20 to-emerald-900/5', desc: 'Controls the Master Notes' },
@@ -8,9 +9,17 @@ const roles = [
     { id: 'violinist', label: 'Violinist', imgSrc: '/Icons-png/violin.png', theme: 'from-violet-500/20 to-violet-900/5', desc: 'Melody & Strings' },
 ];
 
-const RoleSelection = ({ onSelect }) => {
+const RoleSelection = ({ onSelect, onBack }) => {
     return (
-        <div className="flex flex-col items-center justify-center min-h-[80vh] animate-fade-in p-6">
+        <div className="flex flex-col items-center justify-center min-h-[80vh] animate-fade-in p-6 relative">
+            {onBack && (
+                <button
+                    onClick={onBack}
+                    className="self-start mb-6 md:absolute md:top-6 md:left-6 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface/40 hover:bg-surface/80 border border-white/10 text-slate-300 hover:text-white transition-all text-sm font-semibold cursor-pointer"
+                >
+                    <ArrowLeft size={16} /> Back to Home
+                </button>
+            )}
             <div className="text-center mb-12">
                 <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-3 font-display text-white">
                     Command the <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Stage</span>

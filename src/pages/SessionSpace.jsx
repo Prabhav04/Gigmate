@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import RoleSelection from '../components/RoleSelection';
 import MasterBoard from '../components/MasterBoard';
 import PlayerBoard from '../components/PlayerBoard';
@@ -13,6 +13,7 @@ import { useStageMode } from '../hooks/useStageMode.jsx';
 const SessionSpace = () => {
     const { sessionId } = useParams();
     const location = useLocation();
+    const navigate = useNavigate();
     const sessionName = location.state?.sessionName || null;
 
     const [role, setRole] = useState(null);
@@ -64,7 +65,7 @@ const SessionSpace = () => {
     };
 
     if (!role) {
-        return <RoleSelection onSelect={setRole} />;
+        return <RoleSelection onSelect={setRole} onBack={() => navigate('/')} />;
     }
 
     return (
@@ -79,7 +80,11 @@ const SessionSpace = () => {
             {/* Navbar */}
             <header className="px-3 py-2 md:px-6 md:py-3 border-b border-glass-border flex justify-between items-center bg-surface/30 backdrop-blur-md sticky top-0 z-50">
                 <div className="flex items-center gap-2 flex-1 min-w-0 mr-2">
-                    <button onClick={() => setRole(null)} className="shrink-0 p-1.5 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white" title="Back">
+                    <button 
+                        onClick={() => navigate('/')} 
+                        className="shrink-0 p-1.5 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white cursor-pointer" 
+                        title="Back to Home (Landing Page)"
+                    >
                         <ArrowLeft size={18} />
                     </button>
 
@@ -102,9 +107,13 @@ const SessionSpace = () => {
                         <span className="hidden md:inline text-xs font-medium">{isConnected ? 'LIVE' : 'OFFLINE'}</span>
                     </div>
 
-                    <div className="text-[10px] md:text-sm font-bold px-2 py-1 md:px-4 md:py-1.5 rounded-lg bg-surface border border-glass-border shadow-sm text-white max-w-[150px] truncate">
+                    <button 
+                        onClick={() => setRole(null)}
+                        className="text-[10px] md:text-sm font-bold px-2 py-1 md:px-4 md:py-1.5 rounded-lg bg-surface border border-glass-border shadow-sm text-white hover:border-primary/50 transition-colors max-w-[150px] truncate cursor-pointer"
+                        title="Click to Switch Instrument Role"
+                    >
                         {role.toUpperCase()}
-                    </div>
+                    </button>
 
                     <button
                         onClick={copyInvite}

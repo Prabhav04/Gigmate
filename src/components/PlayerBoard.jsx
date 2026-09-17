@@ -285,7 +285,13 @@ const AccordionSongItem = ({ song, index, isActive, myNote, onUpdateMyNote, role
 
     // Auto-expand if active (Leader control), otherwise rely on user click
     const showDetails = isActive || isExpanded;
-    const singerNote = role === 'singer' ? parseSingerNote(myNote) : null;
+    const singerNote = role === 'singer' ? (() => {
+        const parsed = parseSingerNote(myNote);
+        return {
+            lyrics: parsed.lyrics || song.lyrics || '',
+            intro: parsed.intro || song.intro || ''
+        };
+    })() : null;
 
     return (
         <div

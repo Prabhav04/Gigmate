@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Reorder, useDragControls, AnimatePresence, motion } from 'framer-motion';
-import { GripVertical, Play, Circle, Plus, Trash2, FileText, ListOrdered, X, BookOpen, Lightbulb, Sliders, ChevronDown, ChevronUp } from 'lucide-react';
+import { GripVertical, Play, Circle, Plus, Trash2, ListOrdered, X, BookOpen, Lightbulb, Sliders, ChevronDown, ChevronUp } from 'lucide-react';
 import Metronome from './Metronome';
 import { DebouncedInput, DebouncedTextarea } from './DebouncedInputs';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
@@ -435,10 +435,8 @@ const CompactSortView = ({ songs, onReorderSongs }) => {
 // ─── Main MasterBoard ─────────────────────────────────────────────────────────
 
 const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSongs, onToggleActive, onImportSongs, onToggleLibrary, onToggleSandbox }) => {
-    const [showImport, setShowImport] = useState(false);
     const [showTools, setShowTools] = useState(false);
     const [isSortMode, setIsSortMode] = useState(false);
-    const [importText, setImportText] = useState('');
     const [filterCategory, setFilterCategory] = useState('All');
     const [sortBy, setSortBy] = useState('original');
     const listRef = useRef(null);
@@ -519,36 +517,6 @@ const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSo
 
     const handleAddSongClick = () => {
         onAddSong();
-        scrollToBottom();
-    };
-
-    const handleImport = () => {
-        if (!importText.trim()) return;
-        const lines = importText.split('\n').filter(l => l.trim());
-        const newSongs = lines.map((line) => ({
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-            title: line.replace(/^\d+\.\s*/, '').trim(),
-            key: '',
-            tempo: '',
-            timeSig: '',
-            notes: '',
-            cues: [],
-            category: 'Slow Acoustic',
-            isActive: false,
-        }));
-        if (onImportSongs) onImportSongs(newSongs);
-        setShowImport(false);
-        setImportText('');
-        scrollToBottom();
-    };
-
-    const loadPreset = (presetSongs) => {
-        const newSongs = presetSongs.map(s => ({
-            ...s,
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-            category: s.category || 'Slow Acoustic'
-        }));
-        if (onImportSongs) onImportSongs(newSongs);
         scrollToBottom();
     };
 
@@ -678,14 +646,15 @@ const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSo
                         {!isSortMode && (
                             <>
                                 <button
-                                    onClick={() => setShowImport(!showImport)}
-                                    className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-2 rounded-lg transition-colors text-sm"
+                                    onClick={onToggleLibrary}
+                                    className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold px-4 py-2 rounded-lg transition-colors text-sm cursor-pointer"
+                                    title="Open Song Library"
                                 >
-                                    <FileText size={18} /> Import
+                                    <BookOpen size={18} className="text-primary" /> Song Library
                                 </button>
                                 <button
                                     onClick={handleAddSongClick}
-                                    className="flex items-center gap-2 bg-primary hover:bg-primary/80 text-background font-bold px-4 py-2 rounded-lg transition-colors text-sm"
+                                    className="flex items-center gap-2 bg-primary hover:bg-primary/80 text-background font-bold px-4 py-2 rounded-lg transition-colors text-sm cursor-pointer"
                                 >
                                     <Plus size={18} /> Add Song
                                 </button>
@@ -693,48 +662,6 @@ const MasterBoard = ({ songs, onAddSong, onUpdateSong, onDeleteSong, onReorderSo
                         )}
                     </div>
                 </div>
-
-                {/* Import Overlay */}
-                {showImport && !isSortMode && (
-                    <div className="absolute inset-0 z-20 bg-surface/95 backdrop-blur-md p-6 flex flex-col animate-fade-in rounded-xl">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-white">Import Songs</h3>
-                            <button onClick={() => setShowImport(false)} className="text-slate-400 hover:text-white">Close</button>
-                        </div>
-                        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-                            <button
-                                onClick={() => { import('../constants/presets').then(({ ROCK_SETLIST_PRESET }) => { loadPreset(ROCK_SETLIST_PRESET); setShowImport(false); }); }}
-                                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg text-white font-bold text-sm whitespace-nowrap hover:scale-105 transition-transform"
-                            >
-                                Load "Rock Setlist" Preset
-                            </button>
-                            <button
-                                onClick={() => { import('../constants/presets').then(({ ATTAM_SETLIST_PRESET }) => { loadPreset(ATTAM_SETLIST_PRESET); setShowImport(false); }); }}
-                                className="px-4 py-2 bg-gradient-to-r from-green-600 to-teal-600 rounded-lg text-white font-bold text-sm whitespace-nowrap hover:scale-105 transition-transform"
-                            >
-                                Load "Attam Setlist" Preset
-                            </button>
-                            <button
-                                onClick={() => { import('../constants/presets').then(({ MARRIAGE_SETLIST_PRESET }) => { loadPreset(MARRIAGE_SETLIST_PRESET); setShowImport(false); }); }}
-                                className="px-4 py-2 bg-gradient-to-r from-pink-600 to-rose-600 rounded-lg text-white font-bold text-sm whitespace-nowrap hover:scale-105 transition-transform"
-                            >
-                                Load "Marriage Setlist" Preset
-                            </button>
-                        </div>
-                        <textarea
-                            value={importText}
-                            onChange={(e) => setImportText(e.target.value)}
-                            placeholder="Paste song titles here (one per line)..."
-                            className="flex-1 w-full bg-black border border-slate-800 rounded-lg p-4 text-slate-300 focus:outline-none focus:border-primary resize-none mb-4"
-                        />
-                        <button
-                            onClick={handleImport}
-                            className="w-full py-3 bg-primary text-black font-bold rounded-lg hover:bg-primary-hover transition-colors"
-                        >
-                            Import {importText ? `(${importText.split('\n').filter(l => l.trim()).length} Songs)` : ''}
-                        </button>
-                    </div>
-                )}
 
                 {/* Sort Mode hint */}
                 {isSortMode && (

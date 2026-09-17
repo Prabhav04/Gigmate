@@ -321,7 +321,14 @@ const PerformanceMode = ({ songs, songPersonalNotes, role, onExit, onToggleActiv
     }
 
     const myPersonalNote = songPersonalNotes?.[currentSong.id] || '';
-    const singerNote = role === 'singer' ? parseSingerNote(myPersonalNote) : null;
+    const singerNote = role === 'singer' ? (() => {
+        const parsed = parseSingerNote(myPersonalNote);
+        return {
+            lyrics: parsed.lyrics || currentSong.lyrics || '',
+            intro: parsed.intro || currentSong.intro || '',
+            bars: parsed.bars || []
+        };
+    })() : null;
     const hasBarView = role === 'singer' && singerNote?.bars?.length > 0;
 
     return (

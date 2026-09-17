@@ -306,6 +306,16 @@ const SongLibrary = ({
                                                     />
                                                 </div>
 
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] text-secondary uppercase font-bold tracking-wider">Vocalist Lyrics</label>
+                                                    <DebouncedTextarea 
+                                                        value={song.lyrics || ''}
+                                                        onChange={(value) => onUpdateLibrarySong(song.id, 'lyrics', value)}
+                                                        className="w-full h-28 bg-slate-950 border border-slate-800 rounded p-2 text-sm text-secondary/90 focus:outline-none focus:border-secondary resize-none custom-scrollbar"
+                                                        placeholder="Add lyrics for vocalist..."
+                                                    />
+                                                </div>
+
                                                 <div className="flex gap-2 pt-2">
                                                     <button
                                                         onClick={() => handleAddToSetlistClick(song)}
@@ -375,6 +385,14 @@ const SongLibrary = ({
                                                         <div className="text-[10px] text-slate-600 uppercase font-bold mb-1">Flow Notes</div>
                                                         <div className="text-slate-300 text-sm whitespace-pre-wrap leading-relaxed font-sans">
                                                             {song.notes}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {song.lyrics && (
+                                                    <div className="pt-2 border-t border-slate-900">
+                                                        <div className="text-[10px] text-secondary uppercase font-bold mb-1">Vocalist Lyrics</div>
+                                                        <div className="text-secondary/90 text-sm whitespace-pre-wrap leading-relaxed font-sans max-h-48 overflow-y-auto custom-scrollbar bg-black/40 p-2.5 rounded border border-slate-800/50">
+                                                            {song.lyrics}
                                                         </div>
                                                     </div>
                                                 )}
